@@ -1,0 +1,148 @@
+#
+# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+#
+
+#
+# This file defines test suite configuration variables.It contains
+# three sections:
+#       1) Common variables that test user should not modify
+#       2) Configuration variables without default
+#       3) Configuration variables with default
+#
+# Test user should not modify section #1. He/She must provide definitions for
+# section #2, and may need to modify section #3
+#
+
+#
+#--------------------------------------------------------------------------
+# SECTION 1: Common variables that should not Modify
+#--------------------------------------------------------------------------
+#
+
+#
+# Python PATH, test user should not modify.
+#
+PYTHONPATH=${CTI_ROOT}/lib:${CTI_SUITE}/lib:${PEXPECT}
+
+#
+# XML PATH, test user should not modify.
+#
+XMLPATH=/var/tmp/fcior/xml
+
+#
+# Temporary PATH, test user should not modify.
+#
+TMPPATH=/var/tmp/fcior/tmp
+
+#
+# VFS INFO file, test user should not modify.
+#
+INIT_VFS=${XMLPATH}/INIT_VFS_INFO.xml
+
+#
+# TST VFS file, test user should not modify.
+#
+TST_VFS=${XMLPATH}/TST_VFS_INFO.xml
+
+#
+# Interact file, test user should not modify.
+#
+INT_LOG=${TMPPATH}/fcior.interaction
+
+#
+#--------------------------------------------------------------------------
+# SECTION 2: Configuration variables without default
+#--------------------------------------------------------------------------
+#
+
+#
+# The test root domains and io domain will be cloned by a source domain.
+#
+# If test user has finished creating the root domains and io domain, this config
+# var should be ignored.
+#
+# If test user execute "run_test --configure" to create root domains and
+# io domains. All test domains will be cloned from this source domain.
+#
+SOURCE_DOMAIN=
+SOURCE_DOMAIN_PASSWORD=
+
+#
+# The first root domain including name and password to be used.
+# Test user should know the password is the same as source domain's if cloned from
+# the source domain, else, modify the password as your own.
+#
+NPRD_A=
+NPRD_A_PASSWORD=
+
+#
+# PF from the root domain NPRD_A defined above
+#
+PF_A=
+
+#
+# port-wwn and node-wwn of the VF created from the PF_A
+#
+PORT_WWN_PF_A_VF0=
+NODE_WWN_PF_A_VF0=
+PORT_WWN_PF_A_VF1=
+NODE_WWN_PF_A_VF1=
+PORT_WWN_PF_A_VF2=
+NODE_WWN_PF_A_VF2=
+
+#
+# The second root domain including name and password to be used
+# Test user should know the password is the same as source domain's if cloned
+# from the source domain, else, modify the password as you own.
+#
+NPRD_B=
+NPRD_B_PASSWORD=
+
+#
+# PF from the root domain NPRD_B defined above
+#
+PF_B=
+
+# port-wwn and node-wwn of the VF created from the PF_B
+#
+PORT_WWN_PF_B_VF0=
+NODE_WWN_PF_B_VF0=
+PORT_WWN_PF_B_VF1=
+NODE_WWN_PF_B_VF1=
+PORT_WWN_PF_B_VF2=
+NODE_WWN_PF_B_VF2=
+
+#
+# The IO domain including name and password to be used
+#
+IOD=
+IOD_PASSWORD=
+
+#
+#--------------------------------------------------------------------------
+# SECTION 3: Configuration variables with default
+#--------------------------------------------------------------------------
+#
+
+#
+# IO domains will be used in stress_multidom case.
+# Please be ensure IOD defined above is created by zfs filesystem,
+# or will fail due to the below io domains will be created by cloning
+# from the IOD defined in section #2.
+# Test user could choose to change the below variables or not.
+#
+IOD_1=fc-iod1
+IOD_2=fc-iod2
+IOD_3=fc-iod3
+IOD_4=fc-iod4
+IOD_5=fc-iod5
+IOD_6=fc-iod6
+IOD_7=fc-iod7
+IOD_8=fc-iod8
+IOD_9=fc-iod9
+IOD_10=fc-iod10
+IOD_11=fc-iod11
+IOD_12=fc-iod12
+IOD_13=fc-iod13
+IOD_14=fc-iod14
+IOD_15=fc-iod15

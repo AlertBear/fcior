@@ -1,0 +1,101 @@
+#
+# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+#
+
+#
+# STC.INFO - STC Test Suite and Tools Information File
+#
+
+#
+# STC_NAME - Required
+#
+# Test Suite or Tool Name - a possibly hyphenated single word name.
+# This will be used in the SVR4 package name. IPS package names
+# are derived from the source directory structure.
+#
+STC_NAME="storage/fcior"
+
+#
+# STC_SYNOPSIS - Required
+#
+# A one line description of the test suite or tool.
+#
+STC_SYNOPSIS="FC IOR Test Suite"
+
+#
+# STC_SUPPORT_LEVEL - Required
+#
+# One of the following values is required to indicate the level of support
+# provided for the test suite or tool:
+#
+# o full:     Test suite or tool is fully supported. All bugs are fixed based
+#             on priority.
+#
+# o partial:  Test suite or tool is maintained, but support is limited.
+#             Only S1 and S2 bugs are fixed in a timely manner.
+#
+# o minimum:  Test suite or tool is supported only when critical issues
+#             need to be resolved. Only S1 bugs are fixed in a timely manner.
+#
+# o obsolete: Test suite or tool is not supported and has been moved to
+#             an inactive part of the STC gate.
+#
+STC_SUPPORT_LEVEL="full"
+
+#
+# STC_OS_VERSION - Required
+#
+# Solaris OS version that this test suite or tool supports. This
+# should be the `uname -r` value (e.g., "5.12").
+# 
+STC_OS_VERSION="5.12"
+
+#
+# STC_VERSION - Required
+#
+# The test suite or tool version. This field is used as the package
+# version. The version number must be of the format <MAJOR>.<minor>.
+# The initial version should be "1.0". <MAJOR>.<minor> are defined below:
+#       
+# o MAJOR: Test suite or tool major version. The major version should be
+#          incremented when a significant new version of the test suite or
+#          tool is released. Normally this indicates substantial changes
+#          and/or additions to the test suite or tool. The initial version
+#          should be "1.0".
+#
+# o minor: Test suite or tool minor version. The minor version should be
+#          incremented every time the test suite or tool changes. When the
+#          major number changes, the minor number should be reset to 0.
+#
+STC_VERSION=1.0
+
+#
+# STC_BUGPRODUCT/STC_BUGCAT/STC_BUGSUBCAT - Required for full/partial support
+#
+# The BugDB Product/Component/Subcomponent information for this suite or tool.
+#
+# Note: 10010 is the BugDB product ID for STC
+#
+STC_BUGPRODUCT="stc"
+STC_BUGCAT="storage"
+STC_BUGSUBCAT="fc-ior"
+
+#
+# STC_CONTACT - Required for full/partial/minimum support
+#
+# The email address of the BugDB default assignee for this test suite or
+# tool. For open source test suites or tools, also include the external
+# community email address after the BugDB default assignee's. Separate
+# multiple email addresses with commas.
+#
+STC_CONTACT="ior_tst_cn_grp@oracle.com"
+
+#
+# STC_URL - Optional
+#
+# The URL for information about this test suite or tool, or the URL of
+# the open source development project associated with this test suite or
+# tool. Separate multiple URLs with a single whitespace.
+#
+STC_URL=""
+

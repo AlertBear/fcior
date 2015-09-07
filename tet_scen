@@ -1,0 +1,52 @@
+#
+# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+#
+
+all
+	^fcior
+
+fcior
+	^func_01
+	^func_02
+	^func_03
+	^func_04
+	^func_05
+	^float
+	^maxvf
+	^multidom
+
+functional
+	^func_01
+	^func_02
+	^func_03
+	^func_04
+	^func_05
+	^float
+	
+stress
+	^maxvf
+	^multidom
+
+func_01
+ 	/tests/functional/test01/tc_test01{}
+
+func_02
+ 	/tests/functional/test02/tc_test02{}
+
+func_03
+ 	/tests/functional/test03/tc_test03{}
+
+func_04
+ 	/tests/functional/test04/tc_test04{}
+
+func_05
+ 	/tests/functional/test05/tc_test05{}
+
+float
+ 	/tests/functional/float/tc_float{}
+
+maxvf
+ 	/tests/stress/maxvf/tc_maxvf{}
+
+multidom
+ 	/tests/stress/multidom/tc_multidom{}

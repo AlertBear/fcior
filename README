@@ -1,0 +1,318 @@
+#
+# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+#
+
+
+FC IOR test suite README   -   JUNE 27, 2015
+
+
+================================================================
+
+Table of Contents
+
+1. Introduction
+
+2. Test System Requirements
+   2.1 Hardware Requirements
+   2.2 Software Requirements
+
+3. Execute the Test Suite
+   3.1 Test Configuration
+   3.2 Test Execution
+
+4. Build Test Suite
+   4.1 Bring Over Source Code
+   4.2 Build and Install
+   4.3 Build package
+
+5. Test Case Development
+   5.1 Test Suite Framework
+   5.2 Test Suite Structure
+   5.3 Naming Space
+   5.4 Debugging
+   5.5 Logging
+
+6. References
+
+7. Contact us
+
+
+================================================================
+
+1.  Introduction
+
+    IOR is a feature that permits an IO domain (SPARC platform) to continue
+    running when the root domain providing it with services is interrupted.
+    This removes the vulnerability of unexpected root domain failure and
+    expected occasional maintenance requirement, and thus add resiliency to
+    the operations of the IO domains. The current project intends to add this
+    capability to the networking, fibre channel IO and InfiniBand traffic with
+    proper fail-over configurations.
+
+    This test suite is designed to provide fibre channel ior functional and
+    stress tests.
+
+================================================================
+
+
+2.  Test System Requirements
+
+2.1  Hardware Requirements
+
+    o Hosts - CPU type is SPARC, T4/T5 or newer, running Solaris 11.2.7 or upper
+    o FC cards - At least 2 16Gb Ganymede FC cards
+    o FC switch - One SR-IOV compatible FC switch
+    o FC storage - Any FC storage that is accessible via FC switch
+
+
+2.2  Software Requirements
+
+    o Solaris 11 and upper version
+    o SUNWstc-tetlite(SVR4) or tetlite (IPS) must be installed
+    o Python module pexpect must be installed
+    o Vdbench 5.04 is not necessary but may need in stress test
+    o Make sure NFS client and autofs work well as some NFS paths are referenced.
+
+2.2.1  Install suite package and dependence packages
+
+    This suite package and the dependence packages need be installed in test
+    system.
+    Two formats are provided for suite package and its dependency packages:
+        SUNWstc-tetlite           (SVR4) or tetlite  (IPS)
+        SUNWstc-storage-fcior     (SVR4) or fcior    (IPS)
+        SUNWstc-3rdparty-pexpect  (SVR4) or pexpect  (IPS)
+    User have to choose one format and install them on host manually
+
+    (Replace "$STC-GATE" with actual path that matches the Solaris version.
+    If you are unsure about that, put "/ws/stcnv-gate" for solaris 11 or
+    "/ws/stc12-gate" for solaris 12)
+
+    - Install packages of IPS format:
+        # pkg set-publisher -p $STC-GATE/packages/repo.stc/$(uname -p)
+        # pkg install stc/suites/storage/fcior
+        (Note that "pkg install" will automatically solve dependencies for you)
+
+    - Install packages of SVR4 format:
+        # pkgadd -d $STC-GATE/packages/$(uname -p) SUNWstc-storage-fcior
+        # pkgadd -d $STC-GATE/packages/$(uname -p) SUNWstc-tetlite
+        # pkgadd -d $STC-GATE/packages/$(uname -p) SUNWstc-3rdparty-pexpect
+
+2.2.2 Distribute vdbench
+
+    Vdbench is a command line utility specifically created to help generate disk
+    I/O workloads. It is not necessary but will be used in stress test.
+
+    Before stress test, prepare to download the vdbench files from the following
+    link:
+    http://sbm-240b.central.sun.com/speweb/vdbench/index.html
+    or
+    http://www.oracle.com/technetwork/server-storage/vdbench-downloads-1901681.html
+
+    It is packaged as a zip file. Copy the file to the target io domain and
+    uncompress to the specific directory which is "/export/home/vdbench" in
+    io domain.
+    # unzip -o vdbench50402.zip -d /export/home/vdbench
+
+================================================================
+
+
+3.  Execute Tests Suite
+
+    Before executing the test suite, please ensure that all hardware and
+    software prerequisites are satisfied by the systems being used to test.
+
+    Once that has been done, the following steps will execute the test suite
+    and provide a log in "/var/tmp/fcior".  The summary provided at the end of
+    the test suite execution will indicate the actual location of the execution
+    log file.
+
+3.1  Test Configuration
+
+3.1.1 Export environment variables
+
+    Export CTI_ROOT
+        If install packages of IPS format:
+        # export CTI_ROOT=/opt/stc/tools/tet/contrib/ctitools
+        or install packages of SVR4 format:
+        # export CTI_ROOT=/opt/SUNWstc-tetlite/contrib/ctitools
+
+    Export PEXPECT
+        If install packages of IPS format:
+        # export PEXPECT=/opt/stc/3rdparty/pexpect
+        or install packages of SVR4 format:
+        # export PEXPECT=/opt/SUNWstc-3rdparty-pexpect
+
+    Add "$CTI_ROOT/bin" to the PATH
+        # export PATH=$CTI_ROOT/bin:$PATH
+
+3.1.2 Update the configuration variables
+
+    Test suite configuration variables are stored in the "config/test_config"
+    file.  Test user should update this file to reflect test configuration
+    prior to running "run_test". Please see the specific contents in the file.
+
+3.1.3 Setup the test domains
+
+    There are two ways to setup the test domains(NPRD_A, NPRD_B, IOD) defined
+    in the configuration file. Create them manually, or semi-automatically.
+
+    Manually:
+        N/A
+    Semi-automatically:
+        1. Create the SOURCE_DOMAIN defined in configuration file by using a
+        zfs filesystem
+
+        2. Leave the two buses where PF_A and PF_B defined in the configuration
+        file locates available.
+
+        3. Execute "run_test --configure"
+        This process to create test domains(NPRD_A, NPRD_B, IOD) by snapshot
+        the zfs volume of SOURCE_DOMAIN and clone the one to create the other
+        ROOT domains and IO domain.
+
+3.1.4 Cleanup the test domains(After the test execution phase)
+
+    Execute "run_test --unconfigure"
+    This process to delete the test domains(NPRD_A, NPRD_B, IOD) by delete the
+    zfs volumes of these domains and zfs volume snapshot of the SOURCE_DOMAIN.
+
+
+3.2  Test Execution
+
+    Below are examples of running different scenarios:
+
+    o Executing all scenarios (default)
+
+    # run_test fcior
+
+    o Executing specific scenario(defined in tet_scen in test suite)
+
+    # run_test fcior func_03
+
+================================================================
+
+
+4. Build Test Suite
+
+4.1 Bring over Source Code
+
+    S12:
+    # WS=$HOME/ws/stc12-gate/usr
+    # hg clone /ws/stc12-gate/usr/closed $WS
+    S11:
+    # WS=$HOME/ws/stcnv-gate/usr
+    # hg clone /ws/stcnv-gate/usr/closed $WS
+
+4.2 Build and Install
+
+    # CTI_ROOT=/ws/stc12-gate/packages/sparc/SUNWstc-tetlite/reloc/contrib/ctitools
+    # export $CTI_ROOT
+    # cd $WS/suites/SUNWstc-storage-fcior/fcior
+    # make ; make install
+
+4.3 Build Package
+
+    # make package (SVR4) or # make publish (IPS)
+
+================================================================
+
+
+5.  Test Case Development
+
+5.1 Test Suite Framework
+
+    FC-IOR test suite uses tetlite as test harness, which provide for test suites
+    to run on local machines.
+
+    This test suite simulate a test user who has logined the local system, and
+    telnet on the root domain or IO domain to operate the necessary commands.
+
+
+5.2 Test Suite Structure
+
+    Test suit source code structure follows CTI User Guide.
+
+    fcior
+     |
+     +--- config
+     +--- lib(*)
+     +--- bin(*)
+     +--- src
+     |      |
+     |      +---lib
+     |      |    |
+     |      |    +--- Ldom.py
+     |      |    +--- common.py
+     |      |    +--- error.py
+     |      |
+     |      +---utils
+     |           |
+     |           +--- test_configure.py
+     |           +--- test_unconfigure.py
+     |
+     +--- tests
+            |
+            +--- functional
+            |	     |
+            |	     +--- test01
+            |	     +--- test02
+            |	     +--- test03
+            |	     +--- test04
+            |	     +--- test05
+            |	     +--- float
+            |
+            +--- stress
+            	   |
+            	   +--- maxvf
+            	   +--- multidom
+
+
+    NOTE: (*) created when make install
+
+    o Reference :
+      http://onwiki.us.oracle.com/bin/view/SolarisQE/cti-user-guide
+
+5.3 Naming Space
+
+    To unify name space, the whole test suite follow the following naming rule
+
+o Library
+
+o Global Variable
+
+o TC and TP
+
+    The test cases and test purpose functions name rule.
+
+    "tc_" : The prefix of tc function. Such as "tc_test01" and "tc_test02".
+    "tp_" : The prefix of tp function. Such as "tp_test01_001 and tp_test02_002"
+
+5.4 Logging
+
+    All the interraction logfile between test suite and the guest domain will be
+    saved after the test case, please check the "/var/tmp/fcior" path to read
+    and find the corresponding logfile.
+
+================================================================
+
+
+6.  References
+
+o CTI Users Guide
+  http://onwiki.us.oracle.com/bin/view/SolarisQE/cti-user-guide
+
+o CTI Interfaces
+  http://onwiki.us.oracle.com/bin/view/SolarisQE/cti-interfaces
+
+================================================================
+
+
+7.  Contact us
+
+If you want to contact us, please use the STC_CONTACT email address provided
+in the STC.INFO file.
+
+Any feedback is greatly appreciated.
+
+
+# EOF of README

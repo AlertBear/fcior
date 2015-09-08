@@ -289,7 +289,7 @@ def get_pf_another_port(pf):
         result - Another port of fc device
     """
     pcie = pf.split('.')[0]
-    cmd = "ldm list-io|grep %s|grep -v %s" % (pcie, pcie)
+    cmd = "ldm list-io|grep %s|grep -v %s" % (pcie, pf)
     output = execute(cmd)
     result = output.split()[0]
     return result
@@ -635,12 +635,8 @@ def destroy_all_vfs_on_pf(pf):
         # The vf has been bound to a domain,need to be removed
         domain = output.split('|')[4].split('=')[1]
         if domain != '':
-            try:
-                remove_vf_from_domain(vf, domain)
-            except Exception as e:
-                raise e
-            else:
-                time.sleep(3)
+            remove_vf_from_domain(vf, domain)
+            time.sleep(3)
 
     # Destroy all the vfs created under the pf
     cmd_destroy = 'ldm destroy-vf -n max %s' % pf
@@ -693,7 +689,7 @@ def assign_vf_to_domain(vf, domain):
     output = execute(cmd)
     # The vf has been bound to a domain,need to be removed
     bound_domain = output.split('|')[4].split('=')[1]
-    if domain != '':
+    if bound_domain:
         remove_vf_from_domain(vf, bound_domain)
 
     cmd = 'ldm add-io %s %s' % (vf, domain)
@@ -770,7 +766,7 @@ def check_vdbench_exists(iod_name, iod_password):
     """
     iod_port = get_domain_port(iod_name)
     iod = Ldom.Ldom(iod_name, iod_password, iod_port)
-    vdbench_path = os.getenv("VDBENCH_PATH")
+    vdbench_path = "/export/home/vdbench"
     cmd = 'test -d %s' % vdbench_path
     iod.sendcmd(cmd)
 
@@ -1134,129 +1130,9 @@ def get_vf_hotplug_port(vf):
     # Get the hotplug dev of vf
     hotplug_dev = get_vf_hotplug_dev(vf)
 
-    port = hotplug_dev.split('@')[1]
+    port = hotplug_dev.split('@')[-1]
     hotplug_port = 'pci.' + port
     return hotplug_port
-
-
-def save_init_vfs_info_to_xml(vfs_dict, logfile):
-    """
-    Purpose:
-        Save the information of vfs created in startup phase
-        to a xml file
-    Arguments:
-        vfs_dict - The vfs which will be used
-        logfile - Where the info to be saved
-    Return:
-        None
-    """
-    pf_info_dict = {}
-    vf_info_dict = {}
-    for pf, vfs_list in vfs_dict.items():
-        for vf in vfs_list:
-            hotplug_dev = get_vf_hotplug_dev(vf)
-            hotplug_path = get_vf_hotplug_path(vf)
-            hotplug_port = get_vf_hotplug_port(vf)
-            port_wwn = get_vf_port_wwn(vf)
-            info_item = {
-                "port_wwn": port_wwn,
-                "hotplug_dev": hotplug_dev,
-                "hotplug_path": hotplug_path,
-                "hotplug_port": hotplug_port
-            }
-            vf_info_dict.update({vf: info_item})
-        pf_info_dict.update({pf: vf_info_dict})
-
-    impl = xml.dom.minidom.getDOMImplementation()
-    dom = impl.createDocument(None, 'PFs', None)
-    root = dom.documentElement
-
-    for pf, vf_info_dict in pf_info_dict.items():
-        pf_element = dom.createElement('PF')
-        pf_element.setAttribute('alias', pf)
-        pf_class = get_pf_class(pf)
-        pf_element.setAttribute('class', pf_class)
-        root.appendChild(pf_element)
-
-        for vf, info_item in vf_info_dict.items():
-            vf_element = dom.createElement('VF')
-
-            vf_element.setAttribute('alias', vf)
-            vf_element.setAttribute('class', pf_class)
-            pf_element.appendChild(vf_element)
-
-            wwn_element = dom.createElement('port_wwn')
-            port_wwn = info_item['port_wwn']
-            wwn_text = dom.createTextNode(port_wwn)
-            wwn_element.appendChild(wwn_text)
-            vf_element.appendChild(wwn_element)
-
-            dev_element = dom.createElement('hotplug_dev')
-            hotplug_dev = info_item['hotplug_dev']
-            dev_text = dom.createTextNode(hotplug_dev)
-            dev_element.appendChild(dev_text)
-            vf_element.appendChild(dev_element)
-
-            path_element = dom.createElement('hotplug_path')
-            hotplug_path = info_item['hotplug_path']
-            path_text = dom.createTextNode(hotplug_path)
-            path_element.appendChild(path_text)
-            vf_element.appendChild(path_element)
-
-            port_element = dom.createElement('hotplug_port')
-            hotplug_port = info_item['hotplug_port']
-            port_text = dom.createTextNode(hotplug_port)
-            port_element.appendChild(port_text)
-            vf_element.appendChild(port_element)
-
-    f = open(logfile, 'a')
-    dom.writexml(f, addindent='  ', newl='\n')
-    f.close()
-
-
-def parse_init_vfs_from_xml(init_vfs_info_xml):
-    """
-    Purpose:
-        Parse the information of vfs created in startup phase
-        from a xml file
-    Arguments:
-        init_vfs_info_xml - Where the info to be parsed
-    Return:
-        init_vfs_info_dict
-    """
-    init_vfs_info_dict = {}
-    DOMTree = xml.dom.minidom.parse(init_vfs_info_xml)
-    pfs_root = DOMTree.documentElement
-    pfs = pfs_root.getElementsByTagName("PF")
-
-    each_pf_vfs_info_dict = {}
-    for pf in pfs:
-        pf_alias = pf.getAttribute("alias")
-        pf_class = pf.getAttribute("class")
-
-        vfs = pf.getElementByTagName("VF")
-        for vf in vfs:
-            vf_alias = vf.getAttribute("alias")
-            vf_class = vf.getAttribute("class")
-            port_wwn_ele = vf.getElementByTagName("port_wwn")[0]
-            port_wwn = port_wwn_ele.childNodes[0].nodeValue
-            hotplug_dev_ele = vf.getElementByTagName("hotplug_dev")[0]
-            hotplug_dev = hotplug_dev_ele.childNodes[0].nodeValue
-            hotplug_path_ele = vf.getElementByTagName("hotplug_path")[0]
-            hotplug_path = hotplug_path_ele.childNodes[0].nodeValue
-            hotplug_port_ele = vf.getElementByTagName("hotplug_port")[0]
-            hotplug_port = hotplug_port_ele.childNodes[0].nodeValue
-            vf_info_dict = {
-                "class": vf_class,
-                "port_wwn": port_wwn,
-                "hotplug_dev": hotplug_dev,
-                "hotplug_path": hotplug_path,
-                "hotplug_port": hotplug_port,
-            }
-            each_pf_vfs_info_dict.update({vf_alias: vf_info_dict})
-        init_vfs_info_dict.update({pf_alias: each_pf_vfs_info_dict})
-
-    return init_vfs_info_dict
 
 
 def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
@@ -1278,7 +1154,7 @@ def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
         nprd_element.setAttribute('name', nprd)
         root.appendChild(nprd_element)
 
-        for pf, pf_vfs_dict in rd_pfs_vfs_dict:
+        for pf, pf_vfs_dict in rd_pfs_vfs_dict.items():
             pf_element = dom.createElement('PF')
             pf_element.setAttribute('alias', pf)
             pf_class = get_pf_class(pf)
@@ -1292,72 +1168,11 @@ def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
                 vf_element.setAttribute('class', vf_class)
                 pf_element.appendChild(vf_element)
 
-                for each_vf_key,each_vf_value in info_item.items():
+                for each_vf_key, each_vf_value in info_item.items():
                     each_vf_ele = dom.createElement(each_vf_key)
-                    each_vf_text = each_vf_value
+                    each_vf_text = dom.createTextNode(each_vf_value)
                     each_vf_ele.appendChild(each_vf_text)
                     vf_element.appendChild(each_vf_ele)
-
-            '''
-            for vf, info_item in pf_vfs_dict.items():
-                vf_element = dom.createElement('VF')
-                vf_element.setAttribute('alias', vf)
-                pf_element.appendChild(vf_element)
-
-                dev_element = dom.createElement('hotplug_dev')
-                hotplug_dev = info_item['hotplug_dev']
-                dev_text = dom.createTextNode(hotplug_dev)
-                dev_element.appendChild(dev_text)
-                vf_element.appendChild(dev_element)
-
-                path_element = dom.createElement('hotplug_path')
-                hotplug_path = info_item['hotplug_path']
-                path_text = dom.createTextNode(hotplug_path)
-                path_element.appendChild(path_text)
-                vf_element.appendChild(path_element)
-
-                port_element = dom.createElement('hotplug_port')
-                hotplug_port = info_item['hotplug_port']
-                port_text = dom.createTextNode(hotplug_port)
-                port_element.appendChild(port_text)
-                vf_element.appendChild(port_element)
-
-                status_element = dom.createElement('hotplug_status')
-                hotplug_status = info_item['hotplug_status']
-                status_text = dom.createTextNode(hotplug_status)
-                status_element.appendChild(status_text)
-                vf_element.appendChild(status_element)
-
-                vf_class = info_item['class']
-                if vf_class == 'FIBRECHANNEL':
-                    wwn_element = dom.createElement('port_wwn')
-                    port_wwn = info_item['port_wwn']
-                    wwn_text = dom.createTextNode(port_wwn)
-                    wwn_element.appendChild(wwn_text)
-                    vf_element.appendChild(wwn_element)
-
-                    logical_element = dom.createElement('logical_path')
-                    logical_path = info_item['logical_path']
-                    logical_text = dom.createTextNode(logical_path)
-                    logical_element.appendChild(logical_text)
-                    vf_element.appendChild(logical_element)
-
-                    mpxio_element = dom.createElement('mpxio_flag')
-                    mpxio_flag = info_item['mpxio_flag']
-                    mpxio_text = dom.createTextNode(mpxio_flag)
-                    mpxio_element.appendChild(mpxio_text)
-                    vf_element.appendChild(mpxio_element)
-
-                    io_element = dom.createElement('io_state')
-                    io_state = info_item['io_state']
-                    io_text = dom.createTextNode(io_state)
-                    io_element.appendChild(io_text)
-                    vf_element.appendChild(io_element)
-                elif pf_class == 'INFINIBAND':
-                    pass
-                else:
-                    pass
-                '''
 
     f = open(test_vfs_info_xml, 'a')
     dom.writexml(f, addindent='  ', newl='\n')
@@ -1391,8 +1206,6 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
     Return:
         None
     """
-    # Get the vfs_info.xml file which be saved in test_startup phase
-    init_vfs_info_xml = os.getenv("INIT_VFS")
     path = os.getenv("TMPPATH")
 
     iod_name = iod_info_dict.get('name')
@@ -1400,9 +1213,6 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
     iod_password = iod_info_dict.get('password')
     iod = Ldom.Ldom(iod_name, iod_password, iod_port)
     hotplug_logfile = iod.save_hotplug_log(path)
-
-    # Get the initial vfs info from xml file
-    init_vfs_info_dict = parse_init_vfs_from_xml(init_vfs_info_xml)
 
     # Get all the test vfs information
     test_vfs_info_dict = {}
@@ -1414,65 +1224,57 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
             for vf, domain in vfs_iod_dict.items():
                 each_vf_info_dict = {}
                 if pf_class == 'FIBRECHANNEL':
-                    if init_vfs_info_dict[pf][vf]:
-                        each_vf_info_dict = init_vfs_info_dict[pf][vf]
-                        if domain == iod_name:
-                            hotplug_status = iod.get_vf_hotplug_status(
-                                vf,
-                                hotplug_logfile)
-                            logical_path = iod.get_vf_logical_path(vf)
-                            io_state = iod.check_vf_io_workload_on(vf)
-                        else:
-                            new_iod_name = domain
-                            new_iod_port = get_domain_port(new_iod_name)
-                            new_iod = Ldom.Ldom(
-                                new_iod_name,
-                                iod_password,
-                                new_iod_port)
-                            new_hotplug_log = new_iod.save_hotplug_log(path)
-                            hotplug_status = new_iod.get_vf_hotplug_status(
-                                vf,
-                                new_hotplug_log)
-                            logical_path = new_iod.get_vf_logical_path(vf)
-                            io_state = new_iod.check_vf_io_workload_on(vf)
+                    port_wwn = get_vf_port_wwn(vf)
+                    hotplug_dev = get_vf_hotplug_dev(vf)
+                    hotplug_path = get_vf_hotplug_path(vf)
+                    hotplug_port = get_vf_hotplug_port(vf)
+                    if domain == iod_name:
+                        hotplug_status = iod.get_vf_hotplug_status(
+                            vf,
+                            hotplug_logfile)
+                        logical_path = iod.get_vf_logical_path(vf)
+                        mpxio_flag = iod.check_vf_mpxio(vf)
+                        io_state = iod.check_vf_io_workload_on(vf)
                     else:
-                        port_wwn = get_vf_port_wwn(vf)
-                        hotplug_dev = get_vf_hotplug_dev(vf)
-                        hotplug_path = get_vf_hotplug_path(vf)
-                        hotplug_port = get_vf_hotplug_port(vf)
-                        if domain == iod_name:
-                            hotplug_status = iod.get_vf_hotplug_status(
-                                vf,
-                                hotplug_logfile)
-                            logical_path = iod.get_vf_logical_path(vf)
-                            io_state = iod.check_vf_io_workload_on(vf)
-                        else:
-                            new_iod_name = domain
-                            new_iod_port = get_domain_port(new_iod_name)
-                            new_iod = Ldom.Ldom(
-                                new_iod_name,
-                                iod_password,
-                                new_iod_port)
-                            new_hotplug_log = new_iod.save_hotplug_log(path)
-                            hotplug_status = new_iod.get_vf_hotplug_status(
-                                vf,
-                                new_hotplug_log)
-                            logical_path = new_iod.get_vf_logical_path(vf)
-                            io_state = new_iod.check_vf_io_workload_on(vf)
-                        each_vf_info_dict.update(
-                            {"port_wwn": port_wwn})
-                        each_vf_info_dict.update(
-                            {"hotplug_dev": hotplug_dev})
-                        each_vf_info_dict.update(
-                            {"hotplug_path": hotplug_path})
-                        each_vf_info_dict.update(
-                            {"hotplug_port": hotplug_port})
+                        new_iod_name = domain
+                        new_iod_port = get_domain_port(new_iod_name)
+                        new_iod = Ldom.Ldom(
+                            new_iod_name,
+                            iod_password,
+                            new_iod_port)
+                        new_hotplug_log = new_iod.save_hotplug_log(path)
+                        hotplug_status = new_iod.get_vf_hotplug_status(
+                            vf,
+                            new_hotplug_log)
+                        logical_path = new_iod.get_vf_logical_path(vf)
+                        mpxio_flag = new_iod.check_vf_mpxio(vf)
+                        io_state = new_iod.check_vf_io_workload_on(vf)
+                    if not logical_path:
+                        logical_path = 'none'
+                    if mpxio_flag:
+                        mpxio_flag = 'true'
+                    else:
+                        mpxio_flag = 'false'
+                    if io_state:
+                        io_state = 'true'
+                    else:
+                        io_state = 'false'
+                    each_vf_info_dict.update(
+                        {"port_wwn": port_wwn})
+                    each_vf_info_dict.update(
+                        {"hotplug_dev": hotplug_dev})
+                    each_vf_info_dict.update(
+                        {"hotplug_path": hotplug_path})
+                    each_vf_info_dict.update(
+                        {"hotplug_port": hotplug_port})
                     each_vf_info_dict.update(
                         {"io_domain": domain})
                     each_vf_info_dict.update(
                         {"hotplug_status": hotplug_status})
                     each_vf_info_dict.update(
                         {"logical_path": logical_path})
+                    each_vf_info_dict.update(
+                        {"mpxio_flag": mpxio_flag})
                     each_vf_info_dict.update(
                         {"io_state": io_state})
                     each_vf_info_dict.update(
@@ -1489,7 +1291,7 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
     if os.path.isfile(test_vfs_info_xml):
         os.remove(test_vfs_info_xml)
     # Save to the test_vfs_info_log xml file
-    save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_dict)
+    save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml)
 
 
 class operate_domain_thread(threading.Thread):
@@ -1556,31 +1358,30 @@ def parse_test_vfs_info_from_xml(test_vfs_info_xml):
     root = DOMTree.documentElement
     nprds = root.getElementsByTagName("NPRD")
 
-    each_nprd_pfs_vfs_dict = {}
     for nprd_ele in nprds:
         nprd = nprd_ele.getAttribute("name")
-        pfs = nprd_ele.getElementByTagName("PF")
+        pfs = nprd_ele.getElementsByTagName("PF")
 
-        each_pf_vfs_dict = {}
+        pfs_vfs_dict = {}
         for pf in pfs:
             pf_alias = pf.getAttribute("alias")
             pf_class = pf.getAttribute("class")
-            vfs = pf.getElementByTagName("VF")
+            vfs = pf.getElementsByTagName("VF")
 
-            each_vf_info_dict = {}
+            vfs_info_dict = {}
             for vf in vfs:
                 vf_alias = vf.getAttribute("alias")
                 vf_class = vf.getAttribute("class")
 
-                io_domain_ele = vf.getElementByTagName("io_domain")[0]
+                io_domain_ele = vf.getElementsByTagName("io_domain")[0]
                 io_domain = io_domain_ele.childNodes[0].nodeValue
-                hotplug_dev_ele = vf.getElementByTagName("hotplug_dev")[0]
+                hotplug_dev_ele = vf.getElementsByTagName("hotplug_dev")[0]
                 hotplug_dev = hotplug_dev_ele.childNodes[0].nodeValue
-                hotplug_path_ele = vf.getElementByTagName("hotplug_path")[0]
+                hotplug_path_ele = vf.getElementsByTagName("hotplug_path")[0]
                 hotplug_path = hotplug_path_ele.childNodes[0].nodeValue
-                hotplug_port_ele = vf.getElementByTagName("hotplug_port")[0]
+                hotplug_port_ele = vf.getElementsByTagName("hotplug_port")[0]
                 hotplug_port = hotplug_port_ele.childNodes[0].nodeValue
-                hotplug_status_ele = vf.getElementByTagName("hotplug_status")[0]
+                hotplug_status_ele = vf.getElementsByTagName("hotplug_status")[0]
                 hotplug_status = hotplug_status_ele.childNodes[0].nodeValue
 
                 info_dict = {
@@ -1592,14 +1393,24 @@ def parse_test_vfs_info_from_xml(test_vfs_info_xml):
                     "hotplug_status": hotplug_status,
                 }
                 if pf_class == 'FIBRECHANNEL':
-                    port_wwn_ele = vf.getElementByTagName("port_wwn")[0]
+                    port_wwn_ele = vf.getElementsByTagName("port_wwn")[0]
                     port_wwn = port_wwn_ele.childNodes[0].nodeValue
-                    logical_path_ele = vf.getElementByTagName("logical_path")[0]
+                    logical_path_ele = vf.getElementsByTagName("logical_path")[0]
                     logical_path = logical_path_ele.childNodes[0].nodeValue
-                    mpxio_flag_ele = vf.getElementByTagName("mpxio_flag")[0]
+                    if logical_path == 'none':
+                        logical_path = None
+                    mpxio_flag_ele = vf.getElementsByTagName("mpxio_flag")[0]
                     mpxio_flag = mpxio_flag_ele.childNodes[0].nodeValue
-                    io_state_ele = vf.getElementByTagName("io_state")[0]
+                    if mpxio_flag == 'true':
+                        mpxio_flag = True
+                    else:
+                        mpxio_flag = False
+                    io_state_ele = vf.getElementsByTagName("io_state")[0]
                     io_state = io_state_ele.childNodes[0].nodeValue
+                    if io_state == 'true':
+                        io_state = True
+                    else:
+                        io_state = False
                     info_dict.update({"port_wwn": port_wwn})
                     info_dict.update({"logical_path": logical_path})
                     info_dict.update({"mpxio_flag": mpxio_flag})
@@ -1609,9 +1420,9 @@ def parse_test_vfs_info_from_xml(test_vfs_info_xml):
                 else:
                     pass
 
-                each_vf_info_dict.update({vf_alias: info_dict})
-            each_pf_vfs_dict.update({pf_alias: each_vf_info_dict})
-        each_nprd_pfs_vfs_dict.update({nprd: each_pf_vfs_dict})
+                vfs_info_dict.update({vf_alias: info_dict})
+            pfs_vfs_dict.update({pf_alias: vfs_info_dict})
+        test_vfs_info_dict.update({nprd: pfs_vfs_dict})
     return test_vfs_info_dict
 
 
@@ -1848,12 +1659,11 @@ def check_domain_disk_and_io(
     else:  # Only one root domain be interrupted
         normal_status = ['ONLINE', 'OFFLINE']
 
-        for vf, vf_info in test_vfs_in_iod.keys():
+        for vf, vf_info in test_vfs_in_iod.items():
             # If VF status is not ONLINE or OFFLINE, no need to check: Fail
             if ior_related_status.get(vf)[0] not in normal_status:
                 status = 1
                 break
-
             # This vf and another vf are multipath configured
             if vf_info.get("mpxio_flag"):
                 # Found mapping logical path: Pass
@@ -1938,13 +1748,16 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
 
     # Parse the test_vfs_info from xml file
     test_vfs_info_dict = parse_test_vfs_info_from_xml(test_vfs_info_xml)
+    info_report(test_vfs_info_dict)
+
     mix_flag = False
     # Check whether this is a mix test with nic/fc/ib
-    for each_pf_vfs in test_vfs_info_dict.values():
-        for vf, each_vf_info in each_pf_vfs.items():
-            if each_vf_info["class"] == "NETWORK":
-                mix_flag = True
-                break
+    for pfs_vfs_info in test_vfs_info_dict.values():
+        for vfs_info in pfs_vfs_info.values():
+            for vf_info in vfs_info.values():
+                if vf_info["class"] == "NETWORK":
+                    mix_flag = True
+                    break
 
     # Float case or multidom case, only check ior status after the
     # interruption of root domains.
@@ -1953,12 +1766,13 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
             name = iod_name
             password = iods_dict[iod_name]
 
-            # Get the  test vfs in iod_name
+            # Get the test vfs in io domain
             test_vfs_in_iod_name = {}
-            for each_pf_vfs in test_vfs_info_dict.values():
-                for vf, each_vf_info in each_pf_vfs.items():
-                    if each_vf_info["io_domain"] == iod_name:
-                        test_vfs_in_iod_name.update({vf, each_vf_info})
+            for pfs_vfs_info in test_vfs_info_dict.values():
+                for vfs_info in pfs_vfs_info.values():
+                    for vf, vf_info in vfs_info.items():
+                        if vf_info["io_domain"] == iod_name:
+                            test_vfs_in_iod_name.update({vf: vf_info})
 
             info_report(
                 "Getting all ior related information of io domain %s..." %
@@ -2023,7 +1837,6 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
     else:  # Check related status during interruption and post-interruption
         iod_name = iods_dict.keys()[0]
         iod_password = iods_dict[iod_name]
-        iod_port = get_domain_port(iod_name)
         root_domain_name = root_domain_dict.keys()[0]
         operate_type = root_domain_dict[root_domain_name].get('operate_type')
         operate_count = root_domain_dict[root_domain_name].get('opeate_count')
@@ -2035,16 +1848,17 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
         fc_vfs_in_iod_name = {}
         nic_vfs_in_iod_name = {}
         ib_vfs_in_iod_name = {}
-        for each_pf_vfs in test_vfs_info_dict.values():
-            for vf, each_vf_info in each_pf_vfs.items():
-                if each_vf_info["io_domain"] == iod_name:
-                    test_vfs_in_iod_name.update({vf: each_vf_info})
-                    if each_vf_info["class"] == "FIBRECHANNEL":
-                        fc_vfs_in_iod_name.update({vf: each_vf_info})
-                    elif each_vf_info["class"] == "NETWORK":
-                        nic_vfs_in_iod_name.update({vf: each_vf_info})
-                    else:
-                        ib_vfs_in_iod_name.update({vf: each_vf_info})
+        for pfs_vfs in test_vfs_info_dict.values():
+            for vfs_info in pfs_vfs.values():
+                for vf, vf_info in vfs_info.items():
+                    if vf_info["io_domain"] == iod_name:
+                        test_vfs_in_iod_name.update({vf: vf_info})
+                        if vf_info["class"] == "FIBRECHANNEL":
+                            fc_vfs_in_iod_name.update({vf: vf_info})
+                        elif vf_info["class"] == "NETWORK":
+                            nic_vfs_in_iod_name.update({vf: vf_info})
+                        else:
+                            ib_vfs_in_iod_name.update({vf: vf_info})
 
         while event.isSet():
             # If the status has not change back to ONLINE,check the status
@@ -2223,8 +2037,7 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                 info_print_report(
                     "The status of the vf in the io domain:\n%s" %
                     output)
-            if operate_type == 'reboot':
-                return 1
+            return 1
         if status_changed == 1:
             status_not_changed_back_result = 1
             if mix_offline_flag:
@@ -2248,8 +2061,8 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                     info_print_report(
                         "The status of the vf in the io domain:\n%s" %
                         output)
-                if status_not_changed_back_result != 0:
-                    return 1
+            if status_not_changed_back_result != 0:
+                return 1
         if disk_or_io_check_fail_during_interrupted == 1:
             error_print_report(
                 "Disk or I/O workload failed during root domain interrupted")
@@ -2342,8 +2155,8 @@ def save_pexpect_interaction_logfile(target_name):
     """
     source = os.getenv("INT_LOG")
     target = target_name
-    cmd = 'mv {0} {1}'.format(source, target)
-    execute(cmd)
+    if os.path.isfile(source):
+        os.rename(source, target)
 
 
 def delete_path(path):

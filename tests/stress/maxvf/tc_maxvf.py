@@ -44,17 +44,51 @@ def startup():
         info_print_report(
             "Vdbench file already exists in io domain [%s]" % iod_name)
 
+    # check the pf whether has created vf, if yes,destroyed
+    pf_list = [pf_1, pf_2]
+    for pf_item in pf_list:
+        info_print_report("Checking PF [%s] whether has created vf" % pf_item)
+        if check_whether_pf_has_created_vf(pf_item):
+            info_print_report(
+                "VF has been created on PF [%s], trying to destroy..." %
+                pf_item)
+            try:
+                destroy_all_vfs_on_pf(pf_item)
+            except Exception as e:
+                error_print_report(e)
+                error_report(traceback.print_exc())
+                ctiutils.cti_deleteall(
+                    "Failed to destroy all the vfs created on the PF [%s]" %
+                    pf_item)
+                return 1
+            else:
+                info_print_report(
+                    "Destroy all the vfs created on PF [%s] done" % pf_item)
+        else:
+            info_print_report(
+                "No vf has been created on the PF [%s]" % pf_item)
+        time.sleep(3)
+
     # create vf by manually assign port-wwn and node-wwn
+    maxvf_num_1 = int(get_pf_maxvf_number(pf_1))
     vfs_list = []
     a_vfs_list = []
-    b_vfs_list = []
-
-    for i in range(0, 2):
-        vf = pf_1 + '.VF{0}'.format(i)
-        vfs_list.append(vf)
-        a_vfs_list.append(vf)
-
-    maxvf_num_1 = int(get_pf_maxvf_number(pf_1))
+    for i in range(0, 3):
+        port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_A_VF{0}".format(i))
+        node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_A_VF{0}".format(i))
+        try:
+            info_print_report("Creating vf on PF [%s]" % pf_1)
+            vf = create_vf_in_manual_mode(pf_1, port_wwn, node_wwn)
+        except Exception as e:
+            error_print_report(e)
+            error_report(traceback.print_exc())
+            ctiutils.cti_deleteall("Failed to create vf on the PF [%s]" % pf_1)
+            return 1
+        else:
+            info_print("Created vf [%s] on pf [%s]" % (vf, pf_1))
+            vfs_list.append(vf)
+            a_vfs_list.append(vf)
+            time.sleep(15)
     for i in range(3, maxvf_num_1):
         try:
             info_print_report("Creating vf on PF [%s]" % pf_1)
@@ -70,12 +104,24 @@ def startup():
             a_vfs_list.append(vf)
             time.sleep(15)
 
-    for i in range(0, 2):
-        vf = pf_2 + '.VF{0}'.format(i)
-        vfs_list.append(vf)
-        b_vfs_list.append(vf)
-
     maxvf_num_2 = int(get_pf_maxvf_number(pf_2))
+    b_vfs_list = []
+    for i in range(0, 3):
+        port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_B_VF{0}".format(i))
+        node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_B_VF{0}".format(i))
+        try:
+            info_print_report("Creating vf on PF [%s]" % pf_2)
+            vf = create_vf_in_manual_mode(pf_2, port_wwn, node_wwn)
+        except Exception as e:
+            error_print_report(e)
+            error_report(traceback.print_exc())
+            ctiutils.cti_deleteall("Failed to create vf on the PF [%s]" % pf_2)
+            return 1
+        else:
+            info_print("Created vf [%s] on pf [%s]" % (vf, pf_2))
+            vfs_list.append(vf)
+            b_vfs_list.append(vf)
+            time.sleep(15)
     for i in range(3, maxvf_num_2):
         try:
             info_print_report("Creating vf on PF [%s]" % pf_2)
@@ -149,16 +195,16 @@ def startup():
             pf_1: pf_1_vfs_dict
         }
     }
-    test_vfs_info_log = os.getenv("TST_VFS")
+    test_vfs_info_xml = os.getenv("TST_VFS")
 
     try:
         info_print_report(
             "Getting test vfs information...")
-        get_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_log)
+        add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
-        ctiutils.cti_deleteall("Failed")
+        ctiutils.cti_deleteall("Failed to add test vfs information")
         return 1
     else:
         info_print_report("Done")
@@ -174,8 +220,13 @@ def cleanup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar('IOD_PASSWORD')
+    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
     interaction_log = os.getenv("INT_LOG")
-    interaction_dir = os.getenv("CTI_LOGDIR") + "/interact"
+    interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
+
+    # if test_vfs_info_log exists, delete it.
+    if os.path.isfile(test_vfs_info_xml):
+        os.remove(test_vfs_info_xml)
 
     # if vdbench process is still running, kill it
     try:
@@ -190,64 +241,24 @@ def cleanup():
         info_print_report("Killed vdbench process in [%s] success" % iod_name)
     time.sleep(5)
 
-    # remove all the test vfs that has been bound to the io domain
-    maxvf_num_1 = int(get_pf_maxvf_number(pf_1))
-    for i in range(0, maxvf_num_1):
-        vf = pf_1 + '.VF{0}'.format(i)
+    # destroy all the vf that has created on the pf
+    pf_list = [pf_1, pf_2]
+    for pf in pf_list:
         try:
             info_print_report(
-                "Removing %s from %s..." % (vf, iod_name))
-            remove_vf_from_domain(vf, iod_name)
+                "Destroying the VFs created on [%s] in this test case" % pf)
+            destroy_all_vfs_on_pf(pf)
         except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
+            warn_print_report(
+                "Failed to destroy all the vfs created due to:\n%s" % e)
         else:
-            info_print_report("Remove done")
-            time.sleep(5)
-
-    maxvf_num_2 = int(get_pf_maxvf_number(pf_2))
-    for i in range(0, maxvf_num_2):
-        vf = pf_2 + '.VF{0}'.format(i)
-        try:
             info_print_report(
-                "Removing %s from %s..." % (vf, iod_name))
-            remove_vf_from_domain(vf, iod_name)
-        except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
-        else:
-            info_print_report("Remove done")
-            time.sleep(5)
-
-    # destroy all the vf that has created in this test case
-    maxvf_num_1 -= 1
-    for i in range(maxvf_num_1, 2, -1):
-        vf = pf_1 + '.VF{0}'.format(i)
-        try:
-            info_print_report(
-                "Destroying %s" % vf)
-            destroy_vf(vf)
-        except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
-            return 1
-        else:
-            info_print_report("Destroyed done")
-            time.sleep(15)
-
-    maxvf_num_2 -= 1
-    for i in range(maxvf_num_2, 2, -1):
-        vf = pf_2 + '.VF{0}'.format(i)
-        try:
-            info_print_report(
-                "Destroying %s" % vf)
-            destroy_vf(vf)
-        except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
-            return 1
-        else:
-            info_print_report("Destroyed done")
-            time.sleep(15)
+                "Destroyed all the VFs created in this test case")
 
     # copy the pexpect interaction logfile with io domain to "$CTI_LOGDIR" for
     # review , prevent being removed.
+    if not os.path.exists(interaction_dir):
+        os.makedirs(interaction_dir)
     if os.path.isfile(interaction_log):
         try:
             info_print_report(

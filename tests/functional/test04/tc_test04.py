@@ -23,24 +23,76 @@ def startup():
     pf_2 = ctiutils.cti_getvar("PF_B")
 
     nprd1_name = ctiutils.cti_getvar("NPRD_A")
-    nprd2_name = ctiutils.cti_getvar("NPRD_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
 
-    # allocate vfs to the io domain
+    # check the pf whether has created vf, if yes,destroyed
+    pf_list = [pf_1, pf_2]
+    for pf_item in pf_list:
+        info_print_report("Checking PF [%s] whether has created vf" % pf_item)
+        if check_whether_pf_has_created_vf(pf_item):
+            info_print_report(
+                "VF has been created on PF [%s], trying to destroy..." %
+                pf_item)
+            try:
+                destroy_all_vfs_on_pf(pf_item)
+            except Exception as e:
+                error_print_report(e)
+                error_report(traceback.print_exc())
+                ctiutils.cti_deleteall(
+                    "Failed to destroy all the vfs created on the PF [%s]" %
+                    pf_item)
+                return 1
+            else:
+                info_print_report(
+                    "Destroy all the vfs created on PF [%s]" % pf_item)
+        else:
+            info_print_report(
+                "No vf has been created on the PF [%s]" % pf_item)
+        time.sleep(3)
+
+    # create vfs
     vfs_list = []
     a_vfs_list = []
+
+    info_print_report("Creating vf on PF [%s]" % pf_1)
+    for i in range(0, 2):
+        port_wwn = os.getenv("PORT_WWN_PF_A_VF{0}".format(i))
+        node_wwn = os.getenv("NODE_WWN_PF_A_VF{0}".format(i))
+        try:
+            vf = create_vf_in_manual_mode(pf_1, port_wwn, node_wwn)
+        except Exception as e:
+            error_print_report(e)
+            error_report(ctiutils.cti_traceback())
+            ctiutils.cti_deleteall(
+                "Failed to create vf on the PF [%s]" % pf_1)
+            return 1
+        else:
+            info_print("Created vf [%s] on pf [%s]" % (vf, pf_1))
+            vfs_list.append(vf)
+            a_vfs_list.append(vf)
+            time.sleep(30)
+
     b_vfs_list = []
+    info_print_report("Creating vf on PF [%s]" % pf_2)
     for i in range(0, 2):
-        vf_1 = pf_1 + '.VF{0}'.format(i)
-        a_vfs_list.append(vf_1)
-        vfs_list.append(vf_1)
+        port_wwn = os.getenv("PORT_WWN_PF_B_VF{0}".format(i))
+        node_wwn = os.getenv("NODE_WWN_PF_B_VF{0}".format(i))
+        try:
+            vf = create_vf_in_manual_mode(pf_2, port_wwn, node_wwn)
+        except Exception as e:
+            error_print_report(e)
+            error_report(ctiutils.cti_traceback())
+            ctiutils.cti_deleteall(
+                "Failed to create vf on the PF [%s]" % pf_2)
+            return 1
+        else:
+            info_print("Created vf [%s] on pf [%s]" % (vf, pf_2))
+            vfs_list.append(vf)
+            b_vfs_list.append(vf)
+            time.sleep(30)
 
-    for i in range(0, 2):
-        vf_2 = pf_2 + '.VF{0}'.format(i)
-        b_vfs_list.append(vf_2)
-        vfs_list.append(vf_2)
-
+    # allocate vfs to the io domain
     for vf in vfs_list:
         try:
             info_print_report(
@@ -80,16 +132,16 @@ def startup():
             pf_1: pf_1_vfs_dict
         }
     }
-    test_vfs_info_log = os.getenv("TST_VFS")
+    test_vfs_info_xml = os.getenv("TST_VFS")
 
     try:
         info_print_report(
             "Getting test vfs information...")
-        get_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_log)
+        add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
-        ctiutils.cti_deleteall("Failed")
+        ctiutils.cti_deleteall("Failed to add test vfs information")
         return 1
     else:
         info_print_report("Done")
@@ -103,37 +155,32 @@ def cleanup():
 
     pf_1 = ctiutils.cti_getvar("PF_A")
     pf_2 = ctiutils.cti_getvar("PF_B")
-    iod_name = ctiutils.cti_getvar("IOD")
+    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
     interaction_log = os.getenv("INT_LOG")
-    interaction_dir = os.getenv("CTI_LOGDIR") + "/interact"
+    interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
 
-    # remove all the test vfs that has been bound to the io domain
-    for i in range(0, 2):
-        vf = pf_1 + '.VF{0}'.format(i)
+    # if test_vfs_info_log exists, delete it.
+    if os.path.isfile(test_vfs_info_xml):
+        os.remove(test_vfs_info_xml)
+
+    # destroy all the vf that has created on the pf
+    pf_list = [pf_1, pf_2]
+    for pf in pf_list:
         try:
             info_print_report(
-                "Removing %s from %s..." % (vf, iod_name))
-            remove_vf_from_domain(vf, iod_name)
+                "Destroying the VFs created on [%s] in this test case" % pf)
+            destroy_all_vfs_on_pf(pf)
         except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
+            warn_print_report(
+                "Failed to destroy all the vfs created due to:\n%s" % e)
         else:
-            info_print_report("Remove done")
-            time.sleep(5)
-
-    for i in range(0, 2):
-        vf = pf_2 + '.VF{0}'.format(i)
-        try:
             info_print_report(
-                "Removing %s from %s..." % (vf, iod_name))
-            remove_vf_from_domain(vf, iod_name)
-        except Exception as e:
-            warn_print_report("Failed due to:\n%s" % e)
-        else:
-            info_print_report("Remove done")
-            time.sleep(5)
+                "Destroyed all the VFs created in this test case")
 
     # copy the pexpect interaction logfile with io domain to "$CTI_LOGDIR" for
     # review , prevent being removed.
+    if not os.path.exists(interaction_dir):
+        os.makedirs(interaction_dir)
     if os.path.isfile(interaction_log):
         try:
             info_print_report(

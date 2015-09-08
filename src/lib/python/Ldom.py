@@ -449,6 +449,68 @@ class Ldom(object):
                 break
         return logical_path
 
+    def check_vf_mpxio(self, vf):
+        """
+        Purpose:
+            Check whether the vf is MPxIO with another vf in domain
+        Arguments:
+            vf - VF name
+        Return:
+            True or False
+        """
+        # Get hotplug_dev of the vf, be used later
+        hotplug_dev = self.get_vf_hotplug_dev(vf)
+
+        # Get all the logical paths in the domain
+        cmd_luxadm = "luxadm probe | grep Path"
+        try:
+            output_luxadm = self.retsend(cmd_luxadm, timeout=180)
+        except error.ReturnException:
+            return False
+        pattern = re.compile(r'\/dev\/.*')
+        match = pattern.findall(output_luxadm)
+        if match is None:
+            return False
+        all_logical_paths = match
+
+        logical_path = None
+        # There maybe several logical paths,
+        # find the mapping logical path of the VF according the hotplug_dev
+        for logical_path_item in all_logical_paths:
+            logical_path_item = logical_path_item.strip().rstrip(
+                '\r\n').lstrip('\r\n')
+            cmd = "prtconf -v {0}|grep pci|grep {1}".format(
+                logical_path_item,
+                hotplug_dev)
+            try:
+                self.sendcmd(cmd)
+            except error.ExecuteException:
+                continue
+            else:
+                logical_path = logical_path_item
+                break
+
+        if not logical_path:
+            return False
+        else:
+            cmd = "prtconf -v %s|grep pci" % logical_path
+            try:
+                output_luxadm = self.retsend(cmd)
+            except error.ReturnException:
+                return False
+            pattern = re.compile(r'Path')
+            match = pattern.findall(output_luxadm)
+            if len(match) < 2:
+                return False
+            else:
+                bus_path = hotplug_dev.split('/')[1]
+                for item in match:
+                    each_path = item.split(':')[1].strip()
+                    if each_path.split('/')[1] != bus_path:
+                        return True
+                    else:
+                        return False
+
     def check_vf_io_workload_on(self, vf, logfile=None):
         """
         Purpose:

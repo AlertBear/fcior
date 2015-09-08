@@ -35,11 +35,6 @@ XMLPATH=/var/tmp/fcior/xml
 TMPPATH=/var/tmp/fcior/tmp
 
 #
-# VFS INFO file, test user should not modify.
-#
-INIT_VFS=${XMLPATH}/INIT_VFS_INFO.xml
-
-#
 # TST VFS file, test user should not modify.
 #
 TST_VFS=${XMLPATH}/TST_VFS_INFO.xml
@@ -76,12 +71,12 @@ NPRD_A=
 NPRD_A_PASSWORD=
 
 #
-# PF from the root domain NPRD_A defined above
+# FC PF from the root domain NPRD_A defined above
 #
 PF_A=
 
 #
-# port-wwn and node-wwn of the VF created from the PF_A
+# port-wwn and node-wwn of the FC VF created from the PF_A
 #
 PORT_WWN_PF_A_VF0=
 NODE_WWN_PF_A_VF0=
@@ -99,11 +94,11 @@ NPRD_B=
 NPRD_B_PASSWORD=
 
 #
-# PF from the root domain NPRD_B defined above
+# FC PF from the root domain NPRD_B defined above
 #
 PF_B=
 
-# port-wwn and node-wwn of the VF created from the PF_B
+# port-wwn and node-wwn of the FC VF created from the PF_B
 #
 PORT_WWN_PF_B_VF0=
 NODE_WWN_PF_B_VF0=
@@ -146,3 +141,35 @@ IOD_12=fc-iod12
 IOD_13=fc-iod13
 IOD_14=fc-iod14
 IOD_15=fc-iod15
+
+#
+# There were a few bugs while 2 or 3 kinds of devices mixed together
+# for IOR testing.
+# This will be used in mix test including mix_nic_fc, mix_nic_ib,
+# mix_nic_fc_ib tests which locate in stress directory.
+# If test user want to do these mix test, change the default value to
+# True, else, keep it as False
+#
+MIX_TEST=False
+
+#
+# If test user want to do mix test, please define below variables.
+#
+# NIC PF from the root domain NPRD_A defined in section #2
+#
+NIC_PF_A=
+
+#
+# NIC PF from the root domain NPRD_B defined in section #2
+#
+NIC_PF_B=
+
+#
+# IB PF from the root domain NPRD_A defined in section #2
+#
+IB_PF_A=
+
+#
+# IB PF from the root domain NPRD_B defined in section #2
+#
+IB_PF_B=

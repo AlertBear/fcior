@@ -109,9 +109,9 @@ Table of Contents
     http://www.oracle.com/technetwork/server-storage/vdbench-downloads-1901681.html
 
     It is packaged as a zip file. Copy the file to the target io domain and
-    uncompress to the specific directory which is "/export/home/vdbench" in
+    uncompress to the specific directory which is "/export/home/fcior_vdbench" in
     io domain.
-    # unzip -o vdbench50402.zip -d /export/home/vdbench
+    # unzip -o vdbench50402.zip -d /export/home/fcior_vdbench
 
 ================================================================
 

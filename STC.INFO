@@ -67,7 +67,7 @@ STC_OS_VERSION="5.12"
 #          incremented every time the test suite or tool changes. When the
 #          major number changes, the minor number should be reset to 0.
 #
-STC_VERSION=1.0
+STC_VERSION=1.1
 
 #
 # STC_BUGPRODUCT/STC_BUGCAT/STC_BUGSUBCAT - Required for full/partial support

@@ -5,11 +5,13 @@
 include $(CTI_ROOT)/Makefiles/Makefile.defs
 include $(CTI_SUITE)/Targetdirs
 
-CTI_SUBDIRS   = functional \
-	            stress
+SUBDIRS     = mix_nicfc \
+	          mix_nicib \
+	          mix_nicfcib
 
-.PARALLEL: $(CTI_SUBDIRS)
 
-all clean clobber lint install : $(CTI_SUBDIRS)
+.PARALLEL: $(SUBDIRS)
+
+all clean clobber lint install : $(SUBDIRS)
 
 include $(CTI_ROOT)/Makefiles/Makefile.targ

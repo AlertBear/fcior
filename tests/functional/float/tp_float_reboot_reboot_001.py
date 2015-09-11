@@ -52,7 +52,7 @@ def tp_float_reboot_reboot_001():
     nprd_a_password = ctiutils.cti_getvar("NPRD_A_PASSWORD")
     nprd_b_password = ctiutils.cti_getvar("NPRD_B_PASSWORD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    test_vfs_info_log = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
     operate_type_1 = 'reboot'
     operate_type_2 = 'reboot'
@@ -99,7 +99,7 @@ def tp_float_reboot_reboot_001():
         result = common.check_ior_in_domain(
             iods_dict,
             nprd_dict,
-            test_vfs_info_log,
+            all_vfs_info_xml,
             event)
     except Exception as e:
         common.error_print_report(e)

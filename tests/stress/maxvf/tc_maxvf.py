@@ -73,11 +73,11 @@ def startup():
     maxvf_num_1 = int(get_pf_maxvf_number(pf_1))
     vfs_list = []
     a_vfs_list = []
+    info_print_report("Creating vf on PF [%s]" % pf_1)
     for i in range(0, 3):
         port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_A_VF{0}".format(i))
         node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_A_VF{0}".format(i))
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_1)
             vf = create_vf_in_manual_mode(pf_1, port_wwn, node_wwn)
         except Exception as e:
             error_print_report(e)
@@ -88,10 +88,9 @@ def startup():
             info_print("Created vf [%s] on pf [%s]" % (vf, pf_1))
             vfs_list.append(vf)
             a_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
     for i in range(3, maxvf_num_1):
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_1)
             vf = create_vf_in_dynamic_mode(pf_1)
         except Exception as e:
             error_print_report(e)
@@ -102,15 +101,15 @@ def startup():
             info_print("Created vf [%s] on pf [%s]" % (vf, pf_1))
             vfs_list.append(vf)
             a_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
 
     maxvf_num_2 = int(get_pf_maxvf_number(pf_2))
     b_vfs_list = []
+    info_print_report("Creating vf on PF [%s]" % pf_2)
     for i in range(0, 3):
         port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_B_VF{0}".format(i))
         node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_B_VF{0}".format(i))
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_2)
             vf = create_vf_in_manual_mode(pf_2, port_wwn, node_wwn)
         except Exception as e:
             error_print_report(e)
@@ -121,10 +120,9 @@ def startup():
             info_print("Created vf [%s] on pf [%s]" % (vf, pf_2))
             vfs_list.append(vf)
             b_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
     for i in range(3, maxvf_num_2):
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_2)
             vf = create_vf_in_dynamic_mode(pf_2)
         except Exception as e:
             error_print_report(e)
@@ -135,7 +133,7 @@ def startup():
             info_print("Created vf [%s] on pf [%s]" % (vf, pf_2))
             vfs_list.append(vf)
             b_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
 
     # allocate vfs to the io domain
     for vf in vfs_list:
@@ -152,7 +150,7 @@ def startup():
         else:
             info_print_report(
                 "VF [%s] has been allocated to io domain [%s]" % (vf, iod_name))
-            time.sleep(5)
+            time.sleep(3)
 
     # reboot io domain
     try:
@@ -187,20 +185,26 @@ def startup():
     # Get the test vfs info dict
     iod_info_dict = {"name": iod_name, "password": iod_password}
     pf_1_vfs_dict = {}
+    pf_2_vfs_dict = {}
     for vf in a_vfs_list:
         pf_1_vfs_dict.update({vf: iod_name})
 
-    test_vfs_dict = {
+    for vf in b_vfs_list:
+        pf_2_vfs_dict.update({vf: iod_name})
+    all_vfs_dict = {
         nprd1_name: {
             pf_1: pf_1_vfs_dict
+        },
+        nprd2_name: {
+            pf_2: pf_2_vfs_dict
         }
     }
-    test_vfs_info_xml = os.getenv("TST_VFS")
+    all_vfs_info_xml = os.getenv("VFS_INFO")
 
     try:
         info_print_report(
-            "Getting test vfs information...")
-        add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml)
+            "Getting all vfs information...")
+        get_all_vfs_info(iod_info_dict, all_vfs_dict, all_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
@@ -220,13 +224,13 @@ def cleanup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar('IOD_PASSWORD')
-    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
     interaction_log = os.getenv("INT_LOG")
     interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
 
     # if test_vfs_info_log exists, delete it.
-    if os.path.isfile(test_vfs_info_xml):
-        os.remove(test_vfs_info_xml)
+    if os.path.isfile(all_vfs_info_xml):
+        os.remove(all_vfs_info_xml)
 
     # if vdbench process is still running, kill it
     try:

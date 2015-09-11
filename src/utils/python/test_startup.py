@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     # Create xml path where to save the TST_VFS.xml
     try:
-        info_print("Trying to create xml path %s" % xml_path)
+        info_print("Trying to create xml path [%s]" % xml_path)
         create_path(xml_path)
     except Exception as e:
         error_print(e)

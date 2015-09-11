@@ -18,7 +18,7 @@
 #         at least, 2 pairs are multi-path configured.
 #       - Allocated these VFs to the IO domain, run vdbench on 2 VFs which are
 #         multi-path configured.
-#   	- Reboot NPRD1 by "echo 'roodir/W 0'|mdb -kw" in root domain.
+#   	- Reboot NPRD1 by "echo 'roodir/W 0'|mdb -kw".
 #       - During reboot NPRD1, IO domain should be alive.
 #  		- During reboot, check VFs from NPRD1 by "hotplug list" in IO domain,
 #         should be "OFFLINE". check the IO workload, still continue on the
@@ -57,7 +57,7 @@ def tp_maxvf_002():
     iod = ctiutils.cti_getvar("IOD")
     nprd_password = ctiutils.cti_getvar("NPRD_A_PASSWORD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    test_vfs_info_log = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
     operate_type = 'reboot'
     nprd_dict = {
@@ -79,7 +79,7 @@ def tp_maxvf_002():
         result = common.check_ior_in_domain(
             iods_dict,
             nprd_dict,
-            test_vfs_info_log,
+            all_vfs_info_xml,
             event)
     except Exception as e:
         common.error_print_report(e)

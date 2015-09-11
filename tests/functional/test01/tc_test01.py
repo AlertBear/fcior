@@ -26,7 +26,7 @@ def startup():
     nprd_name = ctiutils.cti_getvar("NPRD_A")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
     # check the pf whether has created vf, if yes,destroyed
     for pf in [pf_1, pf_3]:
@@ -128,7 +128,7 @@ def startup():
     for vf in pf_3_vfs_list:
         pf_3_vfs_dict.update({vf: iod_name})
 
-    test_vfs_dict = {
+    all_vfs_dict = {
         nprd_name: {
             pf_1: pf_1_vfs_dict,
             pf_3: pf_3_vfs_dict
@@ -137,10 +137,8 @@ def startup():
 
     try:
         info_print_report(
-            "Getting test vfs information...")
-        add_test_vfs_info(iod_info_dict,
-                          test_vfs_dict,
-                          test_vfs_info_xml)
+            "Getting all vfs information...")
+        get_all_vfs_info(iod_info_dict, all_vfs_dict, all_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
@@ -158,13 +156,13 @@ def cleanup():
 
     pf_1 = ctiutils.cti_getvar("PF_A")
     pf_3 = get_pf_another_port(pf_1)
-    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
     interaction_log = os.getenv("INT_LOG")
     interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
 
     # if test_vfs_info_log exists, delete it.
-    if os.path.isfile(test_vfs_info_xml):
-        os.remove(test_vfs_info_xml)
+    if os.path.isfile(all_vfs_info_xml):
+        os.remove(all_vfs_info_xml)
 
     # destroy all the vf that has created on the pf
     pf_list = [pf_1, pf_3]

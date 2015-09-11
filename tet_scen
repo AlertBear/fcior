@@ -27,6 +27,11 @@ stress
 	^maxvf
 	^multidom
 
+mix
+	^mix_nic_fc
+	^mix_nic_ib
+	^mix_nic_fc_ib
+
 func_01
  	/tests/functional/test01/tc_test01{}
 
@@ -50,3 +55,12 @@ maxvf
 
 multidom
  	/tests/stress/multidom/tc_multidom{}
+
+mix_nic_fc
+ 	/tests/mix/mix_nicfc/tc_mix_nic_fc{}
+
+mix_nic_ib
+ 	/tests/mix/mix_nicib/tc_mix_nic_ib{}
+
+mix_nic_fc_ib
+ 	/tests/mix/mix_nicfcib/tc_mix_nic_fc_ib{}

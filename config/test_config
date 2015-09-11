@@ -37,7 +37,7 @@ TMPPATH=/var/tmp/fcior/tmp
 #
 # TST VFS file, test user should not modify.
 #
-TST_VFS=${XMLPATH}/TST_VFS_INFO.xml
+VFS_INFO=${XMLPATH}/VFS_INFO.xml
 
 #
 # Interact file, test user should not modify.
@@ -126,50 +126,65 @@ IOD_PASSWORD=
 # from the IOD defined in section #2.
 # Test user could choose to change the below variables or not.
 #
-IOD_1=fc-iod1
-IOD_2=fc-iod2
-IOD_3=fc-iod3
-IOD_4=fc-iod4
-IOD_5=fc-iod5
-IOD_6=fc-iod6
-IOD_7=fc-iod7
-IOD_8=fc-iod8
-IOD_9=fc-iod9
-IOD_10=fc-iod10
-IOD_11=fc-iod11
-IOD_12=fc-iod12
-IOD_13=fc-iod13
-IOD_14=fc-iod14
-IOD_15=fc-iod15
+IOD_1=${IOD_1:-fc-iod1}
+IOD_2=${IOD_2:-fc-iod2}
+IOD_3=${IOD_3:-fc-iod3}
+IOD_4=${IOD_4:-fc-iod4}
+IOD_5=${IOD_5:-fc-iod5}
+IOD_6=${IOD_6:-fc-iod6}
+IOD_7=${IOD_7:-fc-iod7}
+IOD_8=${IOD_8:-fc-iod8}
+IOD_9=${IOD_9:-fc-iod9}
+IOD_10=${IOD_10:-fc-iod10}
+IOD_11=${IOD_11:-fc-iod11}
+IOD_12=${IOD_12:-fc-iod12}
+IOD_13=${IOD_13:-fc-iod13}
+IOD_14=${IOD_14:-fc-iod14}
+IOD_15=${IOD_15:-fc-iod15}
 
 #
 # There were a few bugs while 2 or 3 kinds of devices mixed together
 # for IOR testing.
 # This will be used in mix test including mix_nic_fc, mix_nic_ib,
-# mix_nic_fc_ib tests which locate in stress directory.
+# mix_nic_fc_ib tests which locate in mix directory.
 # If test user want to do these mix test, change the default value to
-# True, else, keep it as False
+# 'yes', else, keep it as 'no'
 #
-MIX_TEST=False
+MIX_TEST=${MIX_TEST:-no}
+
+#
+#
+#
+NIC_SWITCH_CONNECTION=${NIC_SWITCH_CONNECTION:-no}
 
 #
 # If test user want to do mix test, please define below variables.
 #
 # NIC PF from the root domain NPRD_A defined in section #2
 #
-NIC_PF_A=
+NIC_PF_A=${NIC_PF_A:-no_value}
 
 #
 # NIC PF from the root domain NPRD_B defined in section #2
 #
-NIC_PF_B=
+NIC_PF_B=${NIC_PF_B:-no_value}
+
+#
+#
+#
+IB_SWITCH_CONNECTION=${IB_SWITCH_CONNECTION:-no}
 
 #
 # IB PF from the root domain NPRD_A defined in section #2
 #
-IB_PF_A=
+IB_PF_A=${IB_PF_A:-no_value}
 
 #
 # IB PF from the root domain NPRD_B defined in section #2
 #
-IB_PF_B=
+IB_PF_B=${IB_PF_B:-no_value}
+
+#
+#
+#
+VF_SUBNET=${VF_SUBNET:-"11.10"}

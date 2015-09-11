@@ -23,6 +23,7 @@ def startup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     # get the root domain and io domain from configuration file
     nprd1_name = ctiutils.cti_getvar("NPRD_A")
+    nprd2_name = ctiutils.cti_getvar("NPRD_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
 
@@ -147,21 +148,28 @@ def startup():
 
     # Get the test vfs info dict
     a_vfs_list = [a_vf]
+    b_vfs_list = [b_vf]
     iod_info_dict = {"name": iod_name, "password": iod_password}
     pf_1_vfs_dict = {}
+    pf_2_vfs_dict = {}
     for vf in a_vfs_list:
         pf_1_vfs_dict.update({vf: iod_name})
-    test_vfs_dict = {
+    for vf in b_vfs_list:
+        pf_2_vfs_dict.update({vf: iod_name})
+    all_vfs_dict = {
         nprd1_name: {
             pf_1: pf_1_vfs_dict
+        },
+        nprd2_name: {
+            pf_2: pf_2_vfs_dict
         }
     }
-    test_vfs_info_log = os.getenv("TST_VFS")
+    all_vfs_info_xml = os.getenv("VFS_INFO")
 
     try:
         info_print_report(
             "Getting test vfs information...")
-        add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_log)
+        get_all_vfs_info(iod_info_dict, all_vfs_dict, all_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
@@ -181,13 +189,26 @@ def cleanup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar('IOD_PASSWORD')
-    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
     interaction_log = os.getenv("INT_LOG")
     interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
 
-    # if test_vfs_info_log exists, delete it.
-    if os.path.isfile(test_vfs_info_xml):
-        os.remove(test_vfs_info_xml)
+    # if test_vfs_info_xml exists, delete it.
+    if os.path.isfile(all_vfs_info_xml):
+        os.remove(all_vfs_info_xml)
+
+    # if run_io.sh process is still running, kill it
+    try:
+        info_print_report(
+            "Killing the run_io.sh process in io domain [%s]" % iod_name)
+        kill_run_io_process_in_domain(iod_name, iod_password)
+    except Exception as e:
+        warn_print_report(
+            "Failed to kill run_io.sh process in [%s] due to:\n%s" %
+            (iod_name, e))
+    else:
+        info_print_report("Killed run_io.sh process in [%s] success" % iod_name)
+    time.sleep(30)
 
     # if zfs file system has been created in this case, destroy it
     try:

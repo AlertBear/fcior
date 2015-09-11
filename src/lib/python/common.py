@@ -636,7 +636,7 @@ def destroy_all_vfs_on_pf(pf):
         domain = output.split('|')[4].split('=')[1]
         if domain != '':
             remove_vf_from_domain(vf, domain)
-            time.sleep(3)
+            time.sleep(5)
 
     # Destroy all the vfs created under the pf
     cmd_destroy = 'ldm destroy-vf -n max %s' % pf
@@ -646,7 +646,7 @@ def destroy_all_vfs_on_pf(pf):
 def create_vf_in_dynamic_mode(pf):
     """
     Purpose:
-        Create vf in dynamic mode: assign port-wwn and node_wwn dynamiclly
+        Create vf in dynamic mode
     Arguments:
         pf - Create vf on this pf
     Return:
@@ -766,7 +766,7 @@ def check_vdbench_exists(iod_name, iod_password):
     """
     iod_port = get_domain_port(iod_name)
     iod = Ldom.Ldom(iod_name, iod_password, iod_port)
-    vdbench_path = "/export/home/vdbench"
+    vdbench_path = "/export/home/fcior_vdbench"
     cmd = 'test -d %s' % vdbench_path
     iod.sendcmd(cmd)
 
@@ -1135,13 +1135,13 @@ def get_vf_hotplug_port(vf):
     return hotplug_port
 
 
-def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
+def save_all_vfs_info_to_xml(all_vfs_info_dict, all_vfs_info_xml):
     """
     Purpose:
         Save the information of test vfs to a xml file
     Arguments:
-        test_vfs_info_dict - The vfs information
-        test_vfs_info_xml - Where the info to be saved
+        all_vfs_info_dict - All the vfs information
+        all_vfs_info_xml - Where the info to be saved
     Return:
         None
     """
@@ -1149,7 +1149,7 @@ def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
     dom = impl.createDocument(None, 'NPRDs', None)
     root = dom.documentElement
 
-    for nprd, rd_pfs_vfs_dict in test_vfs_info_dict.items():
+    for nprd, rd_pfs_vfs_dict in all_vfs_info_dict.items():
         nprd_element = dom.createElement('NPRD')
         nprd_element.setAttribute('name', nprd)
         root.appendChild(nprd_element)
@@ -1174,19 +1174,19 @@ def save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml):
                     each_vf_ele.appendChild(each_vf_text)
                     vf_element.appendChild(each_vf_ele)
 
-    f = open(test_vfs_info_xml, 'a')
+    f = open(all_vfs_info_xml, 'a')
     dom.writexml(f, addindent='  ', newl='\n')
     f.close()
 
 
-def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
+def get_all_vfs_info(iod_info_dict, all_vfs_dict, all_vfs_info_xml):
     """
     Purpose:
         Get all test vfs information and save to a xml file
     Arguments:
         iod_info_dict - IO domain dict, including iod_name and iod_password
             e.g. ["fc_iod1":"nqa123"]
-        test_vfs_dict - The vfs which will be tested
+        all_vfs_dict - The vfs which will be tested
             e.g.
             {
                 "fc-nprd1": {
@@ -1202,7 +1202,7 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
                     ]
                 }
             }
-        test_vfs_info_xml - The xml file where to save the vfs information
+        all_vfs_info_xml - The xml file where to save the vfs information
     Return:
         None
     """
@@ -1214,9 +1214,9 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
     iod = Ldom.Ldom(iod_name, iod_password, iod_port)
     hotplug_logfile = iod.save_hotplug_log(path)
 
-    # Get all the test vfs information
-    test_vfs_info_dict = {}
-    for nprd, pf_vfs in test_vfs_dict.items():
+    # Get all the vfs information
+    all_vfs_info_dict = {}
+    for nprd, pf_vfs in all_vfs_dict.items():
         each_pf_vfs_dict = {}
         for pf, vfs_iod_dict in pf_vfs.items():
             each_vfs_dict = {}
@@ -1285,13 +1285,13 @@ def add_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_xml):
                     pass
                 each_vfs_dict.update({vf: each_vf_info_dict})
             each_pf_vfs_dict.update({pf: each_vfs_dict})
-        test_vfs_info_dict.update({nprd: each_pf_vfs_dict})
+        all_vfs_info_dict.update({nprd: each_pf_vfs_dict})
 
     # If test_vfs_info_log exists, delete it.
-    if os.path.isfile(test_vfs_info_xml):
-        os.remove(test_vfs_info_xml)
+    if os.path.isfile(all_vfs_info_xml):
+        os.remove(all_vfs_info_xml)
     # Save to the test_vfs_info_log xml file
-    save_test_vfs_info_to_xml(test_vfs_info_dict, test_vfs_info_xml)
+    save_all_vfs_info_to_xml(all_vfs_info_dict, all_vfs_info_xml)
 
 
 class operate_domain_thread(threading.Thread):
@@ -1344,17 +1344,17 @@ class operate_domain_thread(threading.Thread):
             self.threadEvent.clear()
 
 
-def parse_test_vfs_info_from_xml(test_vfs_info_xml):
+def parse_all_vfs_info_from_xml(all_vfs_info_xml):
     """
     Purpose:
         Parse the information of test vfs from a xml file
     Arguments:
-        test_vfs_info_xml - Where the info to be parsed
+        all_vfs_info_xml - Where the info to be parsed
     Return:
-        test_vfs_info_dict
+        all_vfs_info_dict
     """
     test_vfs_info_dict = {}
-    DOMTree = xml.dom.minidom.parse(test_vfs_info_xml)
+    DOMTree = xml.dom.minidom.parse(all_vfs_info_xml)
     root = DOMTree.documentElement
     nprds = root.getElementsByTagName("NPRD")
 
@@ -1443,7 +1443,7 @@ def get_domain_hotplug_info(name, password):
     return output
 
 
-def get_domain_all_vfs_status(
+def get_domain_test_vfs_hotplug_status(
         iod_name,
         iod_password,
         test_vfs_in_iod,
@@ -1481,7 +1481,7 @@ def get_domain_all_vfs_status(
 def get_domain_ior_ralated_status(
         iod_name,
         iod_password,
-        test_vfs_in_iod,
+        vfs_in_iod,
         log_dir):
     """
     Purpose:
@@ -1509,7 +1509,7 @@ def get_domain_ior_ralated_status(
     path_logfile = iod.save_path_log(log_dir)
 
     # Parse and get the related info from the logfile
-    for vf, vf_info in test_vfs_in_iod.items():
+    for vf, vf_info in vfs_in_iod.items():
         hotplug_path = vf_info["hotplug_path"]
         hotplug_port = vf_info["hotplug_port"]
         port_wwn = vf_info["port_wwn"]
@@ -1723,7 +1723,7 @@ def check_domain_disk_and_io(
     return status
 
 
-def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
+def check_ior_in_domain(iods_dict, root_domain_dict, all_vfs_info_xml, event):
     """
     Purpose:
         Check ior whether works normally in io domain
@@ -1746,16 +1746,24 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
     disk_or_io_check_fail_during_interrupted = 0
     disk_or_io_check_fail_after_interrupted = 0
 
-    # Parse the test_vfs_info from xml file
-    test_vfs_info_dict = parse_test_vfs_info_from_xml(test_vfs_info_xml)
+    # Parse all_vfs_info from xml file
+    all_vfs_info_dict = parse_all_vfs_info_from_xml(all_vfs_info_xml)
+
+    # Checkout the vfs which will be affected by the interrupted root
+    # domains. These vfs are called test vfs
+    test_vfs_info_dict = {}
+    for root_domain_name in root_domain_dict.keys():
+        each_rd_vfs_info_dict = {
+            root_domain_name: all_vfs_info_dict[root_domain_name]}
+        test_vfs_info_dict.update(each_rd_vfs_info_dict)
     info_report(test_vfs_info_dict)
 
-    mix_flag = False
     # Check whether this is a mix test with nic/fc/ib
+    mix_flag = False
     for pfs_vfs_info in test_vfs_info_dict.values():
         for vfs_info in pfs_vfs_info.values():
             for vf_info in vfs_info.values():
-                if vf_info["class"] == "NETWORK":
+                if vf_info["class"] != "FIBRECHANNEL":
                     mix_flag = True
                     break
 
@@ -1766,13 +1774,13 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
             name = iod_name
             password = iods_dict[iod_name]
 
-            # Get the test vfs in io domain
-            test_vfs_in_iod_name = {}
-            for pfs_vfs_info in test_vfs_info_dict.values():
+            # Get all vfs info in io domain
+            all_vfs_in_iod = {}
+            for pfs_vfs_info in all_vfs_info_dict.values():
                 for vfs_info in pfs_vfs_info.values():
                     for vf, vf_info in vfs_info.items():
                         if vf_info["io_domain"] == iod_name:
-                            test_vfs_in_iod_name.update({vf: vf_info})
+                            all_vfs_in_iod.update({vf: vf_info})
 
             info_report(
                 "Getting all ior related information of io domain %s..." %
@@ -1780,11 +1788,11 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
             ior_related_status = get_domain_ior_ralated_status(
                 name,
                 password,
-                test_vfs_in_iod_name,
+                all_vfs_in_iod,
                 log_dir)
             if check_domain_vfs_hotplug_status(
                     ior_related_status,
-                    test_vfs_in_iod_name) == 1:
+                    all_vfs_in_iod) == 1:
                 error_print_report(
                     "VFs status in io domain %s are not all "
                     "back ONLINE after interruption of root domain:%s" %
@@ -1810,7 +1818,7 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                     password,
                     ior_related_status,
                     root_domain_dict.keys(),
-                    test_vfs_in_iod_name) == 1:
+                    all_vfs_in_iod) == 1:
                 error_print_report(
                     "Logical_path and I/O in io domain %s:%s" % (name, "Fail"))
                 disk_or_io_check_fail_after_interrupted += 1
@@ -1843,8 +1851,16 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
         check_count = operate_count
         mix_offline_flag = False
 
-        # Get the  test vfs in iod_name
-        test_vfs_in_iod_name = {}
+        # Get all vfs info in io domain
+        all_vfs_in_iod = {}
+        for pfs_vfs_info in all_vfs_info_dict.values():
+            for vfs_info in pfs_vfs_info.values():
+                for vf, vf_info in vfs_info.items():
+                    if vf_info["io_domain"] == iod_name:
+                        all_vfs_in_iod.update({vf: vf_info})
+
+        # Get the test vfs in io domain
+        test_vfs_in_iod = {}
         fc_vfs_in_iod_name = {}
         nic_vfs_in_iod_name = {}
         ib_vfs_in_iod_name = {}
@@ -1852,7 +1868,7 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
             for vfs_info in pfs_vfs.values():
                 for vf, vf_info in vfs_info.items():
                     if vf_info["io_domain"] == iod_name:
-                        test_vfs_in_iod_name.update({vf: vf_info})
+                        test_vfs_in_iod.update({vf: vf_info})
                         if vf_info["class"] == "FIBRECHANNEL":
                             fc_vfs_in_iod_name.update({vf: vf_info})
                         elif vf_info["class"] == "NETWORK":
@@ -1863,16 +1879,16 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
         while event.isSet():
             # If the status has not change back to ONLINE,check the status
             if status_changed != 2:
-                vfs_status_dict = get_domain_all_vfs_status(
+                vfs_status_dict = get_domain_test_vfs_hotplug_status(
                     iod_name,
                     iod_password,
-                    test_vfs_in_iod_name,
+                    test_vfs_in_iod,
                     log_dir)
                 # Just FC test, not with NIC/IB
                 if not mix_flag:
                     status = get_domain_vfs_hotplug_status(
                         vfs_status_dict,
-                        test_vfs_in_iod_name)
+                        test_vfs_in_iod)
                     info_print_report(
                         "Root domain %s %sing:status of vf in io domain %s:%s" %
                         (root_domain_name, operate_type, iod_name, status))
@@ -1886,14 +1902,14 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                             ior_related_status = get_domain_ior_ralated_status(
                                 iod_name,
                                 iod_password,
-                                test_vfs_in_iod_name,
+                                test_vfs_in_iod,
                                 log_dir)
                             if check_domain_disk_and_io(
                                     iod_name,
                                     iod_password,
                                     ior_related_status,
                                     root_domain_dict.keys(),
-                                    test_vfs_in_iod_name) == 1:
+                                    test_vfs_in_iod) == 1:
                                 info_print_report(
                                     "Logical_path and I/O in %s:%s" %
                                     (iod_name, "Fail"))
@@ -1911,14 +1927,14 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                             ior_related_status = get_domain_ior_ralated_status(
                                 iod_name,
                                 iod_password,
-                                test_vfs_in_iod_name,
+                                test_vfs_in_iod,
                                 log_dir)
                             if check_domain_disk_and_io(
                                     iod_name,
                                     iod_password,
                                     ior_related_status,
                                     root_domain_dict.keys(),
-                                    test_vfs_in_iod_name) == 1:
+                                    test_vfs_in_iod) == 1:
                                 info_print_report(
                                     "Logical_path and I/O in io domain %s:%s" %
                                     (iod_name, "Fail"))
@@ -1940,14 +1956,14 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                             ior_related_status = get_domain_ior_ralated_status(
                                 iod_name,
                                 iod_password,
-                                test_vfs_in_iod_name,
+                                all_vfs_in_iod,
                                 log_dir)
                             if check_domain_disk_and_io(
                                     iod_name,
                                     iod_password,
                                     ior_related_status,
                                     root_domain_dict.keys(),
-                                    test_vfs_in_iod_name) == 1:
+                                    all_vfs_in_iod) == 1:
                                 info_print_report(
                                     "Logical_path and I/O in io domain %s:%s" %
                                     (iod_name, "Fail"))
@@ -1979,11 +1995,11 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                             ior_related_status = get_domain_ior_ralated_status(
                                 iod_name,
                                 iod_password,
-                                test_vfs_in_iod_name,
+                                all_vfs_in_iod,
                                 log_dir)
                             if check_domain_vfs_hotplug_status(
                                     ior_related_status,
-                                    test_vfs_in_iod_name) == 1:
+                                    all_vfs_in_iod) == 1:
                                 info_print_report(
                                     "hotplug status in io domain %s:%s" %
                                     (iod_name, "Fail"))
@@ -1999,7 +2015,7 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                                     iod_password,
                                     ior_related_status,
                                     root_domain_dict.keys(),
-                                    test_vfs_in_iod_name) == 1:
+                                    all_vfs_in_iod) == 1:
                                 info_print_report(
                                     "Logical_path and I/O in io domain %s:%s" %
                                     (iod_name, "Fail"))
@@ -2072,6 +2088,28 @@ def check_ior_in_domain(iods_dict, root_domain_dict, test_vfs_info_xml, event):
                 "Disk or I/O workload failed after VF change back ONLINE")
             return 1
         return 0
+
+
+def kill_run_io_process_in_domain(name, password):
+    """
+    Purpose:
+        Kill the vdbench process in domain
+    Arguments:
+        name - Domain name
+        password - Domain password
+    Return:
+        None
+    """
+    port = get_domain_port(name)
+    domain = Ldom.Ldom(name, password, port)
+    check_run_io_process = "ps -ef|grep run_io.sh|grep -v grep"
+    try:
+        domain.sendcmd(check_run_io_process)
+    except error.ExecuteException:
+        info_report("No need to kill run_io.sh process")
+    else:
+        cmd = "ps -ef|grep run_io.sh|grep -v grep|awk '{print $2}'|xargs kill -9"
+        domain.sendcmd(cmd)
 
 
 def destroy_file_system_in_domain(name, password):

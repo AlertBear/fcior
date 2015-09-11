@@ -60,7 +60,8 @@ def startup():
         check_vdbench_exists(iod_name, iod_password)
     except Exception as e:
         error_print_report(
-            "Vdbench file doesn't exist in io domain [%s]" % iod_name)
+            "Vdbench file doesn't exist in io domain [%s], "
+            "please refer to 'Distribute vdbench' in README " % iod_name)
         error_report(traceback.print_exc())
         ctiutils.cti_deleteall(
             "Vdbench file doesn't exist in io domain [%s]" % iod_name)
@@ -133,11 +134,11 @@ def startup():
 
     # create vf by manually assign port-wwn and node-wwn
     a_vfs_list = []
+    info_print_report("Creating vf on PF [%s]" % pf_1)
     for i in range(0, 3):
         port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_A_VF{0}".format(i))
         node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_A_VF{0}".format(i))
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_1)
             vf = create_vf_in_manual_mode(pf_1, port_wwn, node_wwn)
         except Exception as e:
             error_print_report(e)
@@ -147,10 +148,9 @@ def startup():
         else:
             info_print("Created [%s] done" % vf)
             a_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
     for i in range(3, support_maxvf_num):
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_1)
             vf = create_vf_in_dynamic_mode(pf_1)
         except Exception as e:
             error_print_report(e)
@@ -160,14 +160,14 @@ def startup():
         else:
             info_print("Created [%s] done" % vf)
             a_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
 
     b_vfs_list = []
+    info_print_report("Creating vf on PF [%s]" % pf_2)
     for i in range(0, 3):
         port_wwn = ctiutils.cti_getvar("PORT_WWN_PF_B_VF{0}".format(i))
         node_wwn = ctiutils.cti_getvar("NODE_WWN_PF_B_VF{0}".format(i))
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_2)
             vf = create_vf_in_manual_mode(pf_2, port_wwn, node_wwn)
         except Exception as e:
             error_print_report(e)
@@ -177,10 +177,9 @@ def startup():
         else:
             info_print_report("Created [%s] done" % vf)
             b_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
     for i in range(3, support_maxvf_num):
         try:
-            info_print_report("Creating vf on PF [%s]" % pf_2)
             vf = create_vf_in_dynamic_mode(pf_2)
         except Exception as e:
             error_print_report(e)
@@ -190,13 +189,14 @@ def startup():
         else:
             info_print_report("Created [%s] done" % vf)
             b_vfs_list.append(vf)
-            time.sleep(15)
+            time.sleep(10)
 
     # allocate vfs to the io domain
     iods_list = [iod_name]
     for i in range(1, support_maxvf_num):
         iods_list.append(ctiutils.cti_getvar("IOD_{0}".format(i)))
     a_vfs_iod_dict = {}
+    b_vfs_iod_dict = {}
     for i in range(0, support_maxvf_num):
         a_vf = a_vfs_list[i]
         assigned_iod_name = iods_list[i]
@@ -216,8 +216,8 @@ def startup():
             info_print_report(
                 "VF [%s] has been allocated to io domain [%s]" %
                 (a_vf, assigned_iod_name))
-            time.sleep(5)
             a_vfs_iod_dict.update({a_vf: assigned_iod_name})
+            time.sleep(3)
 
         b_vf = b_vfs_list[i]
         try:
@@ -236,7 +236,8 @@ def startup():
             info_print_report(
                 "VF [%s] has been allocated to io domain [%s]" %
                 (b_vf, assigned_iod_name))
-            time.sleep(5)
+            b_vfs_iod_dict.update({b_vf: assigned_iod_name})
+            time.sleep(3)
 
     # reboot all io domains
 
@@ -286,18 +287,23 @@ def startup():
     pf_1_vfs_dict = {}
     for vf, affiliated_iod in a_vfs_iod_dict.items():
         pf_1_vfs_dict.update({vf: affiliated_iod})
-
+    pf_2_vfs_dict = {}
+    for vf, affiliated_iod in b_vfs_iod_dict.items():
+        pf_2_vfs_dict.update({vf: affiliated_iod})
     test_vfs_dict = {
         nprd1_name: {
             pf_1: pf_1_vfs_dict
+        },
+        nprd2_name: {
+            pf_2: pf_2_vfs_dict
         }
     }
-    test_vfs_info_log = os.getenv("TST_VFS")
+    all_vfs_info_xml = os.getenv("VFS_INFO")
 
     try:
         info_print_report(
-            "Getting test vfs information...")
-        get_test_vfs_info(iod_info_dict, test_vfs_dict, test_vfs_info_log)
+            "Getting all vfs information...")
+        get_all_vfs_info(iod_info_dict, test_vfs_dict, all_vfs_info_xml)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
@@ -317,13 +323,13 @@ def cleanup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar('IOD_PASSWORD')
-    test_vfs_info_xml = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
     interaction_log = os.getenv("INT_LOG")
     interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
 
     # if test_vfs_info_log exists, delete it.
-    if os.path.isfile(test_vfs_info_xml):
-        os.remove(test_vfs_info_xml)
+    if os.path.isfile(all_vfs_info_xml):
+        os.remove(all_vfs_info_xml)
 
     iods_destroy = []
     for i in range(1, 15):

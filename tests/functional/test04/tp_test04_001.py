@@ -57,7 +57,7 @@ def tp_test04_001():
     iod = ctiutils.cti_getvar("IOD")
     nprd_password = ctiutils.cti_getvar("NPRD_A_PASSWORD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    test_vfs_info_log = ctiutils.cti_getvar("TST_VFS")
+    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
     operate_type = 'reboot'
     nprd_dict = {
@@ -79,7 +79,7 @@ def tp_test04_001():
         result = common.check_ior_in_domain(
             iods_dict,
             nprd_dict,
-            test_vfs_info_log,
+            all_vfs_info_xml,
             event)
     except Exception as e:
         common.error_print_report(e)

@@ -53,7 +53,8 @@ class Ldom(object):
                 i = child.expect(prompts, timeout=300)
             except Exception:
                 raise error.LoginException(
-                    "Failed to login due to null expect reason")
+                    "Failed to login %s due to null expect reason" %
+                    self.name)
             if i == 0:
                 child.sendline('root')
             elif i == 1:
@@ -63,9 +64,11 @@ class Ldom(object):
                 return child
             elif i == 3:
                 raise error.LoginException(
-                    "Failed to login due to incorrect password or TIMEOUT")
+                    "Failed to login %s due to incorrect password or TIMEOUT" %
+                    self.name)
             elif i == 4:
-                raise error.LoginException("Failed to login due to EOF")
+                raise error.LoginException("Failed to login %s due to EOF" %
+                                           self.name)
             elif i == 5:
                 child.send('~wy\r')
 
@@ -627,7 +630,7 @@ class Ldom(object):
         disk = logical_path.split("/")[-1][:-2]
 
         # Test whether the vdbench file exist
-        vdbench_path = os.getenv("VDBENCH_PATH")
+        vdbench_path = "/export/home/fcior_vdbench"
         cmd_test_file = 'test -d %s' % vdbench_path
         try:
             self.sendcmd(cmd_test_file)
@@ -673,7 +676,6 @@ class Ldom(object):
         Return:
             None
         """
-
         i = 0
         cmd = 'reboot'
         while i < count:
@@ -722,7 +724,8 @@ class Ldom(object):
                         i = child.expect(prompts, 60)
                     except Exception:
                         raise error.LoginException(
-                            "Failed to login due to null expect reason")
+                            "Failed to login %s due to null expect reason" %
+                            self.name)
                     if i == 0:
                         child.sendline('r')
                         try:
@@ -735,10 +738,11 @@ class Ldom(object):
                             cld.close()
                     elif i == 1:
                         raise error.LoginException(
-                            "Failed to login due to incorrect password or TIMEOUT")
+                            "Failed to login %s due to incorrect password or TIMEOUT" %
+                            self.name)
                     elif i == 2:
                         raise error.LoginException(
-                            "Failed to login due to EOF")
+                            "Failed to login %s due to EOF" % self.name)
                     elif i == 3:
                         child.send('~wy\r')
                         prompts.pop(i)

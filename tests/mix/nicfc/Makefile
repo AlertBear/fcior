@@ -5,7 +5,7 @@
 include $(CTI_ROOT)/Makefiles/Makefile.defs
 include $(CTI_SUITE)/Targetdirs
 
-CTI_SRCS        = tc_mix_nic_fc.py
+CTI_SRCS        = tc_nicfc.py
 CTI_TARGET      = $(CTI_SRCS:%.py=%)
 CTI_SRCS2:sh       = ls tp_*.py
 CTI_TARGET2     = $(CTI_SRCS2:%.py=%.pyc)

@@ -5,9 +5,9 @@
 include $(CTI_ROOT)/Makefiles/Makefile.defs
 include $(CTI_SUITE)/Targetdirs
 
-SUBDIRS     = mix_nicfc \
-	          mix_nicib \
-	          mix_nicfcib
+SUBDIRS     = nicfc \
+	          nicib \
+	          nicfcib
 
 
 .PARALLEL: $(SUBDIRS)

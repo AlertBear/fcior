@@ -6,7 +6,8 @@ include $(CTI_ROOT)/Makefiles/Makefile.defs
 include $(CTI_SUITE)/Targetdirs
 
 CTI_SUBDIRS   = functional \
-	            stress
+	            stress	\
+	            mix
 
 .PARALLEL: $(CTI_SUBDIRS)
 

@@ -4,30 +4,21 @@
 #
 
 
-import commands
 import time
 import pexpect
 import re
 import os
 import tempfile
-import error
-
-
-def execute(cmd):
-    (status, output) = commands.getstatusoutput(cmd)
-    if status != 0:
-        raise error.ExecuteException(
-            "Execution of [%s] failed:\n%s" %
-            (cmd, output))
-    return output
+from basic import *
 
 
 class Ldom(object):
 
-    def __init__(self, name, password, port):
+    def __init__(self, name, password, port, record=True):
         self.name = name
         self.password = password  # Telnet root password
         self.port = port  # Console port
+        self.record = record
 
     def login(self):
         cmd_telnet = 'telnet 0 ' + str(self.port)
@@ -37,8 +28,9 @@ class Ldom(object):
 
         # Save the interaction log, test user could review to check the whole
         # process.
-        interact_log = os.getenv("INT_LOG")
-        child.logfile = open(interact_log, 'a+')
+        if self.record:
+            interact_log = os.getenv("INT_LOG")
+            child.logfile = open(interact_log, 'a+')
 
         child.send('\r')
         prompts = [
@@ -52,7 +44,7 @@ class Ldom(object):
             try:
                 i = child.expect(prompts, timeout=300)
             except Exception:
-                raise error.LoginException(
+                raise LoginException(
                     "Failed to login %s due to null expect reason" %
                     self.name)
             if i == 0:
@@ -63,12 +55,11 @@ class Ldom(object):
                 cld.close()
                 return child
             elif i == 3:
-                raise error.LoginException(
+                raise LoginException(
                     "Failed to login %s due to incorrect password or TIMEOUT" %
                     self.name)
             elif i == 4:
-                raise error.LoginException("Failed to login %s due to EOF" %
-                                           self.name)
+                raise LoginException("Failed to login %s due to EOF" % self.name)
             elif i == 5:
                 child.send('~wy\r')
 
@@ -91,7 +82,7 @@ class Ldom(object):
         try:
             cldconsole.expect(expectation, timeout)
         except Exception as e:
-            raise error.ExecuteException(
+            raise ExecuteException(
                 "Execution of [{0}] in {1} failed due to:\n{2}".format(
                     cmd,
                     self.name,
@@ -102,7 +93,7 @@ class Ldom(object):
             i = cldconsole.expect(
                 ['0', '1', pexpect.TIMEOUT, pexpect.EOF], timeout)
             if i != 0:
-                raise error.ExecuteException(
+                raise ExecuteException(
                     "Execution of [{0}] failed in {1}".format(
                         cmd,
                         self.name))
@@ -136,7 +127,7 @@ class Ldom(object):
         i = cldconsole.expect(
             ['0', '1', pexpect.TIMEOUT, pexpect.EOF], timeout)
         if i != 0:
-            raise error.ReturnException(
+            raise ReturnException(
                 "Execution of [%s] failed in %s" % (cmd, self.name))
         else:
             cldconsole.sendline(cmd)
@@ -171,13 +162,13 @@ class Ldom(object):
             raise Exception(
                 "Failed to execute [%s] in domain due to:\n %s" % (cmd, e))
         output = cldconsole.before
-        output = output.strip('cmd_clear').strip('\r\n')
+        output = output.strip(cmd_clear).strip('\r\n')
         if check:
             cldconsole.sendline('echo $?')
             i = cldconsole.expect(
                 ['0', '1', pexpect.TIMEOUT, pexpect.EOF], timeout)
             if i != 0:
-                raise error.ReturnException(
+                raise ReturnException(
                     "Execution of [%s] failed in %s:\n%s" %
                     (cmd, self.name, output))
         cldconsole.close()
@@ -220,14 +211,11 @@ class Ldom(object):
         # Name the file as fcinfo.{current time}
         logfile = "%s/%s" % (logfile_path_tmp, 'fcinfo.' + now)
         cmd_touch_logfile = 'touch %s' % logfile
-        try:
-            execute(cmd_touch_logfile)
-        except Exception as e:
-            raise e
+        execute(cmd_touch_logfile)
         cmd_fcinfo = "fcinfo hba-port | grep HBA"
         try:
             output_fcinfo = self.retsend(cmd_fcinfo, timeout=180)
-        except error.ReturnException:
+        except ReturnException:
             output_fcinfo = None
         if output_fcinfo is None:
             return logfile
@@ -249,14 +237,11 @@ class Ldom(object):
         # Name the file as path.{current time}
         logfile = "%s/%s" % (logfile_path_tmp, 'path.' + now)
         cmd_touch_logfile = 'touch %s' % logfile
-        try:
-            execute(cmd_touch_logfile)
-        except Exception as e:
-            raise e
+        execute(cmd_touch_logfile)
         cmd_luxadm = "luxadm probe | grep Path"
         try:
             output_luxadm = self.retsend(cmd_luxadm, timeout=180)
-        except error.ReturnException:
+        except ReturnException:
             output_luxadm = None
         if output_luxadm is None:
             return logfile
@@ -276,18 +261,17 @@ class Ldom(object):
         """
         now = time.strftime("%H%M%S")
         logfile_path_tmp = directory
+
         # Name the file as iodata.{current time}
         logfile = "%s/%s" % (logfile_path_tmp, 'iodata.' + now)
         cmd_touch_logfile = "touch %s" % logfile
-        try:
-            execute(cmd_touch_logfile)
-        except Exception as e:
-            raise e
+        execute(cmd_touch_logfile)
+
         # Use "iostat" to get the io data
         cmd_iostat = "iostat -xn {0} 5 3 | grep {1}".format(disk, disk)
         try:
             output_iostat = self.retsend(cmd_iostat)
-        except error.ReturnException:
+        except ReturnException:
             output_iostat = None
         if output_iostat is None:
             return logfile
@@ -426,7 +410,7 @@ class Ldom(object):
         cmd_luxadm = "luxadm probe | grep Path"
         try:
             output_luxadm = self.retsend(cmd_luxadm, timeout=180)
-        except error.ReturnException:
+        except ReturnException:
             return None
         pattern = re.compile(r'\/dev\/.*')
         match = pattern.findall(output_luxadm)
@@ -445,7 +429,7 @@ class Ldom(object):
                 hotplug_dev)
             try:
                 self.sendcmd(cmd)
-            except error.ExecuteException:
+            except ExecuteException:
                 continue
             else:
                 logical_path = logical_path_item
@@ -468,7 +452,7 @@ class Ldom(object):
         cmd_luxadm = "luxadm probe | grep Path"
         try:
             output_luxadm = self.retsend(cmd_luxadm, timeout=180)
-        except error.ReturnException:
+        except ReturnException:
             return False
         pattern = re.compile(r'\/dev\/.*')
         match = pattern.findall(output_luxadm)
@@ -487,7 +471,7 @@ class Ldom(object):
                 hotplug_dev)
             try:
                 self.sendcmd(cmd)
-            except error.ExecuteException:
+            except ExecuteException:
                 continue
             else:
                 logical_path = logical_path_item
@@ -499,7 +483,7 @@ class Ldom(object):
             cmd = "prtconf -v %s|grep pci" % logical_path
             try:
                 output_luxadm = self.retsend(cmd)
-            except error.ReturnException:
+            except ReturnException:
                 return False
             pattern = re.compile(r'Path')
             match = pattern.findall(output_luxadm)
@@ -604,7 +588,7 @@ class Ldom(object):
         cmd_test_file = "test -f ~/run_io.sh"
         try:
             self.sendcmd(cmd_test_file)
-        except error.ExecuteException:
+        except ExecuteException:
             raise Exception("run_io.sh doesn't exist")
         # If run_io.sh exists, use to run io traffic in the domain
         cmd_run = 'nohup ~/run_io.sh &'
@@ -630,11 +614,11 @@ class Ldom(object):
         disk = logical_path.split("/")[-1][:-2]
 
         # Test whether the vdbench file exist
-        vdbench_path = "/export/home/fcior_vdbench"
+        vdbench_path = "/export/home/vdbench"
         cmd_test_file = 'test -d %s' % vdbench_path
         try:
             self.sendcmd(cmd_test_file)
-        except error.ExecuteException as e:
+        except ExecuteException as e:
             raise Exception("Vdbench doesn't exist")
 
         # Remove any previous configuration under vdbench
@@ -723,7 +707,7 @@ class Ldom(object):
                     try:
                         i = child.expect(prompts, 60)
                     except Exception:
-                        raise error.LoginException(
+                        raise LoginException(
                             "Failed to login %s due to null expect reason" %
                             self.name)
                     if i == 0:
@@ -731,17 +715,17 @@ class Ldom(object):
                         try:
                             child.expect(['console login:'], timeout)
                         except Exception as e:
-                            raise error.LoginException(e)
+                            raise LoginException(e)
                         else:
                             break
                         finally:
                             cld.close()
                     elif i == 1:
-                        raise error.LoginException(
+                        raise LoginException(
                             "Failed to login %s due to incorrect password or TIMEOUT" %
                             self.name)
                     elif i == 2:
-                        raise error.LoginException(
+                        raise LoginException(
                             "Failed to login %s due to EOF" % self.name)
                     elif i == 3:
                         child.send('~wy\r')
@@ -768,7 +752,7 @@ class Ldom(object):
                 try:
                     output_list_prev_crash_dump = self.retsend(
                         cmd_list_prev_crash_dump)
-                except error.ReturnException:
+                except ReturnException:
                     output_list_prev_crash_dump = None
                 if output_list_prev_crash_dump is None:
                     pass
@@ -787,7 +771,7 @@ class Ldom(object):
                 try:
                     output_list_post_crash_dump = self.retsend(
                         cmd_list_post_crash_dump)
-                except error.ReturnException:
+                except ReturnException:
                     output_list_post_crash_dump = None
                 if output_list_post_crash_dump is None:
                     pass
@@ -870,7 +854,7 @@ class Ldom(object):
             cmd_fcinfo = "fcinfo hba-port | grep HBA"
             try:
                 output_fcinfo = self.retsend(cmd_fcinfo, timeout=180)
-            except error.ReturnException:
+            except ReturnException:
                 output_fcinfo = "No port recorded"
             with open(logfile, 'r+') as fo:
                 fo.write(output_fcinfo)
@@ -878,7 +862,7 @@ class Ldom(object):
         cmd = 'grep %s %s' % (port_wwn, logfile)
         try:
             execute(cmd)
-        except error.ExecuteException:
+        except ExecuteException:
             return False
         else:
             return True
@@ -899,7 +883,7 @@ class Ldom(object):
             cmd_luxadm = "luxadm probe|grep Path"
             try:
                 output_luxadm = self.retsend(cmd_luxadm, timeout=180)
-            except error.ReturnException:
+            except ReturnException:
                 output_luxadm = "No logical path recorded"
             with open(logfile, 'r+') as fo:
                 fo.write(output_luxadm)
@@ -907,7 +891,7 @@ class Ldom(object):
         cmd = 'grep %s %s' % (logical_path, logfile)
         try:
             execute(cmd)
-        except error.ExecuteException:
+        except ExecuteException:
             return False
         else:
             return True

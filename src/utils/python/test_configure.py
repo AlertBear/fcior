@@ -257,11 +257,11 @@ def main():
 
         domain_status = output_list_domain.split()[1].strip()
         if domain_status != 'active':
-            print "%s is not up and colud not login" % domain
+            print "%s is not up and could not login" % domain
             break
         cmd_check_hostname = 'hostname %s' % domain
         domain_port = output_list_domain.split()[3].strip()
-        ldom = Ldom.Ldom(domain, password, domain_port)
+        ldom = Ldom.Ldom(domain, password, domain_port, record=False)
         try:
             ldom.sendcmd(cmd_check_hostname, timeout=600)
         except Exception as e:

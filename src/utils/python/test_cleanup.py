@@ -76,7 +76,7 @@ if __name__ == "__main__":
                 xml_path = line.split('=')[1].strip()
                 break
 
-    # Delete the xml path where to save the VFS_INFO.xml and TST_VFS.xml
+    # Delete the xml path where to save the VFS_INFO.xml and IB_INFO.xml
     try:
         info_print("Trying to delete xml path %s" % xml_path)
         delete_path(xml_path)

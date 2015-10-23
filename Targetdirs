@@ -18,7 +18,11 @@ ROOT.TEST	= /tests \
 		  	  /tests/functional/float  \
 		  	  /tests/stress		  \
 		  	  /tests/stress/maxvf	  \
-		  	  /tests/stress/multidom
+		  	  /tests/stress/multidom	\
+		  	  /tests/mix		  \
+		  	  /tests/mix/nicfc		\
+		  	  /tests/mix/nicib		\
+		  	  /tests/mix/nicfcib
 
 TARGETDIRS	= $(CTIDIRS) $(ROOT.TEST)
 

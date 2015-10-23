@@ -67,3 +67,50 @@
 # __stc_assertion_end
 #
 ##########################################################################
+import ctiutils
+import threading
+import common
+import time
+
+
+def tp_nicfcib_002():
+
+    common.info_print_report("FC-IOR mix nicfcib TP2: panic")
+
+    nprd = ctiutils.cti_getvar("NPRD_B")
+    iod = ctiutils.cti_getvar("IOD")
+    nprd_password = ctiutils.cti_getvar("NPRD_B_PASSWORD")
+    iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
+
+    operate_type = 'panic'
+    nprd_dict = {
+        nprd: {
+            'password': nprd_password,
+            'operate_type': operate_type,
+            'operate_count': 1}}
+    iods_dict = {iod: iod_password}
+    # reboot root domain, check the io domain status
+    event = threading.Event()
+    root_domain_thread = common.operate_domain_thread(
+        'Thread-' +
+        nprd,
+        event,
+        nprd_dict)
+    root_domain_thread.start()
+    time.sleep(3)
+    try:
+        result = common.check_ior_in_domain(
+            iods_dict,
+            nprd_dict,
+            event)
+    except Exception as e:
+        common.error_print_report(e)
+        common.error_report(ctiutils.cti_traceback())
+        ctiutils.cti_unresolved()
+    else:
+        if result == 0:
+            ctiutils.cti_pass("pass")
+        elif result == 1:
+            ctiutils.cti_fail("fail")
+        else:
+            ctiutils.cti_unresolved()

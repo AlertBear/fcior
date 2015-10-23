@@ -5,10 +5,10 @@
 
 import ctiutils
 import time
-import pytet
 import os
 import traceback
 from common import *
+from basic import *
 
 # test purposes
 from tp_test05_001 import tp_test05_001
@@ -164,12 +164,11 @@ def startup():
             pf_2: pf_2_vfs_dict
         }
     }
-    all_vfs_info_xml = os.getenv("VFS_INFO")
 
     try:
         info_print_report(
-            "Getting test vfs information...")
-        get_all_vfs_info(iod_info_dict, all_vfs_dict, all_vfs_info_xml)
+            "Getting all vfs information...")
+        get_all_vfs_info(iod_info_dict, all_vfs_dict)
     except Exception as e:
         error_print_report(e)
         error_report(ctiutils.cti_traceback())
@@ -189,13 +188,6 @@ def cleanup():
     pf_2 = ctiutils.cti_getvar("PF_B")
     iod_name = ctiutils.cti_getvar("IOD")
     iod_password = ctiutils.cti_getvar('IOD_PASSWORD')
-    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
-    interaction_log = os.getenv("INT_LOG")
-    interaction_dir = os.getenv("CTI_LOGDIR") + "/interact_logs"
-
-    # if test_vfs_info_xml exists, delete it.
-    if os.path.isfile(all_vfs_info_xml):
-        os.remove(all_vfs_info_xml)
 
     # if run_io.sh process is still running, kill it
     try:
@@ -235,26 +227,17 @@ def cleanup():
             info_print_report(
                 "Destroyed all the VFs created in this test case")
 
-    # copy the pexpect interaction logfile with io domain to "$CTI_LOGDIR" for
-    # review , prevent being removed.
-    if not os.path.exists(interaction_dir):
-        os.makedirs(interaction_dir)
-    if os.path.isfile(interaction_log):
-        try:
-            info_print_report(
-                "Saving the interaction logfile of this test case")
-            now = time.strftime("%Y%m%d%H%M%S")
-            save_pexpect_interaction_logfile(
-                "{0}/func05.{1}".format(interaction_dir, now))
-        except Exception as e:
-            warn_print_report(
-                "Failed to save pexpect interaction logfile due to: \n%s" % e)
-        else:
-            info_print_report(
-                "Test user could review the interaction "
-                "logfile {0}/func05.{1}".format(
-                    interaction_dir, now))
-
+    # save the related logs created in this test case
+    try:
+        info_print_report(
+            "Saving related log files of this test case")
+        save_related_logs("func05")
+    except Exception as e:
+        warn_print_report(
+            "Failed to save related log files due to:\n%s" % e)
+    else:
+        info_print_report('Test user could review the "related_logs" '
+                          'in result path')
 #
 # construct the test list
 # NOTE:  The values in this dictionary are functions, not strings

@@ -8,14 +8,14 @@
 #__stc_assertion_start
 #
 # ID:
-#       mix/mix_nicfc/tp_mix_nic_fc_001
+#       mix/nicfc/tp_nicfc_002
 #
 # DESCRIPTION:
-#       Reboot root domain, IO domain with two FC VFs configured with MPxIO
-#       and two NIC VFs configured with IPMP is alive during the reboot period.
-#       Besides, the two FC VFs where running IO workload is still ONLINE and
-#       IO workload continues after reboot. Meanwhile, the NIC vfs are still
-#       ONLINE after reboot.
+#       Panic root domain, IO domain with two FC VFs configured with MPxIO
+#       and two NIC VFs configured with IPMP is alive during the panic period.
+#       Besides, the two FC VFs where running IO workload are still ONLINE and
+#       IO workload continues after panic. Meanwhile, the NIC vfs are still
+#       ONLINE after panic.
 #
 # STRATEGY:
 #       - Create two FC VFs separately from two PFs in NPRD1 and NPRD2, and
@@ -23,18 +23,18 @@
 #       - Allocated two FC VFs to the IO domain, run io workload on these two
 #         VFs which are MPxIO configured.
 #       - Allocated two NIC VFs configured with IPMP to the IO domain.
-#       - Reboot NPRD1 by "reboot".
-#       - During reboot NPRD1, IO domain should be alive.
-#       - During reboot, check FC VFs from NPRD1 by "hotplug list" in IO domain,
+#       - Panic NPRD2 by "echo 'roodir/W 0'#mdb -kw"
+#       - During panic NPRD2, IO domain should be alive.
+#       - During panic, check FC VFs from NPRD2 by "hotplug list" in IO domain,
 #         should be "OFFLINE". check the IO workload, still continues on the
-#         alternative path. Check VF created from NPRD2 by "hotplug list" in IO
+#         alternative path. Check VF created from NPRD1 by "hotplug list" in IO
 #         domain, should be "ONLINE".
-#       - During reboot, check NIC VF from NPRD1 by "hotplug list" in IO domain,
+#       - During panic, check NIC VF from NPRD2 by "hotplug list" in IO domain,
 #         should be "MAINTENANCE-SUSPENDED". Ping the IPMP interface, should
-#         successfully. Check NIC VF created from NPRD2 by "hotplug list" in IO
+#         successfully. Check NIC VF created from NPRD1 by "hotplug list" in IO
 #         domain, should be "ONLINE". Check ipmp state with "ipmpstat -g" and
-#         "ipmpstat -i", the stat should be degraded/failed.
-#       - After reboot, check VFs state by "hotplug list" in IO domain, all
+#         "ipmpstat -g", the stat should be degraded/failed.
+#       - After panic, check VFs state by "hotplug list" in IO domain, all
 #         should be "ONLINE". Check IO workload on FC VFs, should continue as
 #         nothing happened. Ping IPMP interface, should successfully.Check ipmp
 #         state with "ipmpstat -g" and "ipmpstat -g", the state should be normal.
@@ -58,17 +58,16 @@ import common
 import time
 
 
-def tp_mix_nic_fc_001():
+def tp_nicfc_002():
 
-    common.info_print_report("FC-IOR functional test05 TP1: reboot")
+    common.info_print_report("FC-IOR mix nicfc TP2: panic")
 
-    nprd = ctiutils.cti_getvar("NPRD_A")
+    nprd = ctiutils.cti_getvar("NPRD_B")
     iod = ctiutils.cti_getvar("IOD")
-    nprd_password = ctiutils.cti_getvar("NPRD_A_PASSWORD")
+    nprd_password = ctiutils.cti_getvar("NPRD_B_PASSWORD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
-    operate_type = 'reboot'
+    operate_type = 'panic'
     nprd_dict = {
         nprd: {
             'password': nprd_password,
@@ -88,7 +87,6 @@ def tp_mix_nic_fc_001():
         result = common.check_ior_in_domain(
             iods_dict,
             nprd_dict,
-            all_vfs_info_xml,
             event)
     except Exception as e:
         common.error_print_report(e)

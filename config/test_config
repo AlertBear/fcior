@@ -35,9 +35,14 @@ XMLPATH=/var/tmp/fcior/xml
 TMPPATH=/var/tmp/fcior/tmp
 
 #
-# TST VFS file, test user should not modify.
+# VFS information file, test user should not modify.
 #
 VFS_INFO=${XMLPATH}/VFS_INFO.xml
+
+#
+# IB connection file, test user should not modify.
+#
+IB_INFO=${XMLPATH}/IB_INFO.xml
 
 #
 # Interact file, test user should not modify.
@@ -142,6 +147,10 @@ IOD_13=${IOD_13:-fc-iod13}
 IOD_14=${IOD_14:-fc-iod14}
 IOD_15=${IOD_15:-fc-iod15}
 
+#--------------------------------------------------------------------------
+# Below Configuration Variables Are For Mix Test
+#--------------------------------------------------------------------------
+
 #
 # There were a few bugs while 2 or 3 kinds of devices mixed together
 # for IOR testing.
@@ -153,9 +162,22 @@ IOD_15=${IOD_15:-fc-iod15}
 MIX_TEST=${MIX_TEST:-no}
 
 #
-#
+# Test user must connect $NIC_PF_A and $NIC_PF_B defined below on test
+# machine to a switch, which is also connected to a assistant
+# $REMOTE_NIC_PF on the $REMOTE_HOST defined below.
+# If test user is sure about the connection is right, change "no" to
+# "yes"
 #
 NIC_SWITCH_CONNECTION=${NIC_SWITCH_CONNECTION:-no}
+
+#
+# Test user must connect $IB_PF_A and $IB_PF_B defined below on test
+# machine to a switch, which is also connected to a assistant
+# $REMOTE_IB_PF on the $REMOTE_HOST defined below.
+# If test user is sure about the connection is right, change "no" to
+# "yes"
+#
+IB_SWITCH_CONNECTION=${IB_SWITCH_CONNECTION:-no}
 
 #
 # If test user want to do mix test, please define below variables.
@@ -170,11 +192,6 @@ NIC_PF_A=${NIC_PF_A:-no_value}
 NIC_PF_B=${NIC_PF_B:-no_value}
 
 #
-#
-#
-IB_SWITCH_CONNECTION=${IB_SWITCH_CONNECTION:-no}
-
-#
 # IB PF from the root domain NPRD_A defined in section #2
 #
 IB_PF_A=${IB_PF_A:-no_value}
@@ -185,6 +202,48 @@ IB_PF_A=${IB_PF_A:-no_value}
 IB_PF_B=${IB_PF_B:-no_value}
 
 #
+# Remote host name or ip, which acted as the assistant
+# machine where remote nic cards resides. It can be either the
+# IP address or the host name. for example: "11.0.1.1" or
+# "remotename1"
 #
+NIC_REMOTE_HOST=${REMOTE_HOST:-no_value}
+
 #
-VF_SUBNET=${VF_SUBNET:-"11.10"}
+# The root password of the $NIC_REMOTE_HOST defined above
+#
+NIC_REMOTE_HOST_PASSWORD=${REMOTE_HOST:-no_value}
+
+#
+# NIC pf on the remote host, which acted as the assistant
+# nic interface in test. It is connected to the network
+# switch.
+#
+REMOTE_NIC_LINK=${REMOTE_NIC_LINK:-no_value}
+
+#
+# Remote host name or ip, which acted as the assistant
+# machine where remote ib cards resides. It can be either the
+# IP address or the host name. for example: "11.0.1.2" or
+# "remotename2"
+#
+IB_REMOTE_HOST=${REMOTE_HOST:-no_value}
+
+#
+# The root password of the $IB_REMOTE_HOST defined above
+#
+IB_REMOTE_HOST_PASSWORD=${REMOTE_HOST:-no_value}
+
+#
+# IB pf on the remote host, which acted as the assistant
+# ib port in test. It is connected to the Infiniband
+# switch.
+#
+REMOTE_IB_LINK=${REMOTE_IB_LINK:-no_value}
+
+#
+# Subnet that is used for the test vf interfaces. The tested vf
+# will work on the "$VF_SUBNET.X.0" subnet, the "X" is the
+# vf instance number
+#
+VF_SUBNET=${VF_SUBNET:-"11.11"}

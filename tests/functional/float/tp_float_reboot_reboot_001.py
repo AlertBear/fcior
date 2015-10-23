@@ -40,11 +40,12 @@
 import ctiutils
 import threading
 import common
+import basic
 
 
 def tp_float_reboot_reboot_001():
 
-    common.info_print_report("FC-IOR functional test06 TP1: reboot_reboot")
+    basic.info_print_report("FC-IOR functional test06 TP1: reboot_reboot")
 
     nprd_a = ctiutils.cti_getvar("NPRD_A")
     nprd_b = ctiutils.cti_getvar("NPRD_B")
@@ -52,7 +53,6 @@ def tp_float_reboot_reboot_001():
     nprd_a_password = ctiutils.cti_getvar("NPRD_A_PASSWORD")
     nprd_b_password = ctiutils.cti_getvar("NPRD_B_PASSWORD")
     iod_password = ctiutils.cti_getvar("IOD_PASSWORD")
-    all_vfs_info_xml = ctiutils.cti_getvar("VFS_INFO")
 
     operate_type_1 = 'reboot'
     operate_type_2 = 'reboot'
@@ -99,11 +99,10 @@ def tp_float_reboot_reboot_001():
         result = common.check_ior_in_domain(
             iods_dict,
             nprd_dict,
-            all_vfs_info_xml,
             event)
     except Exception as e:
-        common.error_print_report(e)
-        common.error_report(ctiutils.cti_traceback())
+        basic.error_print_report(e)
+        basic.error_report(ctiutils.cti_traceback())
         ctiutils.cti_unresolved()
     else:
         if result == 0:
